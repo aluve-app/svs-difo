@@ -177,6 +177,19 @@ h1, h2, h3, p { margin: 0; }
   text-overflow: ellipsis;
 }
 
+.header-logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+/* Jika file logo belum diupload / gagal dimuat, sembunyikan otomatis
+   supaya tidak muncul ikon "gambar rusak" di header */
+.header-logo:not([src]), .header-logo[src=""] {
+  display: none;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -273,7 +286,13 @@ h1, h2, h3, p { margin: 0; }
 /* FAB */
 .fab {
   position: fixed;
-  right: calc(50% - 240px + var(--space-md));
+  /* Posisi default untuk mobile: jarak tetap dari tepi layar,
+     karena di HP lebar layar (viewport) SAMA DENGAN lebar #app.
+     Rumus khusus desktop (container dipusatkan) ada di media query
+     min-width:600px di bagian bawah file ini — JANGAN pakai rumus
+     itu di sini, karena hasilnya negatif di layar sempit dan
+     mendorong tombol keluar dari tepi layar. */
+  right: var(--space-md);
   bottom: calc(var(--bottom-nav-height) + var(--space-md));
   width: 56px;
   height: 56px;
