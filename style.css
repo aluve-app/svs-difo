@@ -350,6 +350,30 @@ h1, h2, h3, p { margin: 0; }
   padding: var(--space-lg) 0;
 }
 
+.contact-list {
+  margin-top: var(--space-sm);
+}
+.contact-item {
+  padding: var(--space-sm) 0;
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+}
+.contact-item:first-child {
+  border-top: none;
+}
+.contact-link {
+  display: inline-block;
+  margin-top: 6px;
+  margin-right: var(--space-sm);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
 .card-row {
   display: flex;
   align-items: center;
@@ -552,6 +576,16 @@ h1, h2, h3, p { margin: 0; }
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-on-primary);
+}
+
+.photo-source-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+.photo-source-buttons .secondary-button {
+  font-size: 13px;
+  padding: 12px 6px;
 }
 
 .photo-thumbnail-list {
