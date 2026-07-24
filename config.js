@@ -18,14 +18,14 @@
 const SVS_CONFIG = {
   // Identitas sales pengguna device ini — WAJIB cocok dengan sheet Sales_Master
   SALES_CODE: 'SLS-01',
-  SALES_NAME: 'Budi Santoso',
-  TOKEN: 'GANTI_DENGAN_CONFIG_TOKEN_SALES_INI',
+  SALES_NAME: 'Difo',
+  TOKEN: 'aluve-0002',
 
   // Role: 'sales' atau 'manager' — menentukan data apa yang ditampilkan di Dashboard
   ROLE: 'sales',
 
   // URL Web App hasil Deploy dari Apps Script (lihat tahap setup backend)
-  API_URL: 'GANTI_DENGAN_URL_WEB_APP_APPS_SCRIPT_ANDA',
+  API_URL: 'https://script.google.com/macros/s/AKfycbznquzDsslQsfk-p1AxHmvwer0PL98tmn-WQdN9roQWmObLLLeGm1eNC-Cuckdmok5m1g/exec',
 
   // Batas ukuran foto sebelum dikompresi (dalam piksel, sisi terpanjang)
   // Menjaga ukuran upload tetap kecil untuk sinyal lapangan yang lemah
