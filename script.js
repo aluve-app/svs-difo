@@ -53,6 +53,42 @@ const State = {
 };
 
 /* ============================================================
+   2b. ID GENERATOR (client-side)
+   ============================================================
+   Membuat ID di HP SEBELUM request dikirim ke server, dengan format
+   yang sama seperti backend (PRJ-/ACT-/PHT-). Tujuannya supaya:
+   1. Aplikasi bisa langsung lanjut ke langkah berikutnya tanpa menunggu
+      balasan server (ID sudah pasti sejak awal).
+   2. Kalau request perlu dikirim ulang (retry/sync setelah offline),
+      ID yang dipakai TETAP SAMA — sehingga backend yang sudah idempotent
+      bisa mendeteksi "ini permintaan yang sama" dan tidak membuat data
+      dobel walau dikirim berkali-kali.
+   ============================================================ */
+const IdGen = {
+  randomSuffix() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let s = '';
+    for (let i = 0; i < 4; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+    return s;
+  },
+  formatDate(d) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return '' + yyyy + mm + dd;
+  },
+  formatDateTime(d) {
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    return this.formatDate(d) + hh + mi + ss;
+  },
+  projectId() { return 'PRJ-' + this.formatDate(new Date()) + '-' + this.randomSuffix(); },
+  activityId() { return 'ACT-' + this.formatDateTime(new Date()) + '-' + this.randomSuffix(); },
+  photoId() { return 'PHT-' + this.formatDateTime(new Date()) + '-' + this.randomSuffix(); }
+};
+
+/* ============================================================
    2. UTILS
    ============================================================ */
 const Utils = {
@@ -154,8 +190,10 @@ const OfflineQueue = {
    * karena sinyal lemah — supaya foto & aktivitas selalu tersinkron
    * bersamaan saat sync nanti, tidak ada foto yang "nyasar" tanpa aktivitas.
    *
-   * @param {Object} activityPayload - payload createActivity (tanpa photo_ids)
-   * @param {Array<{base64,mimeType}>} rawPhotos - foto mentah yang belum diupload
+   * @param {Object} activityPayload - payload createActivity (activity_id
+   *   & photo_ids sudah ditentukan di client sebelum dipanggil)
+   * @param {Array<{photoId,base64,mimeType}>} rawPhotos - foto mentah yang
+   *   belum diupload, tiap foto sudah punya photoId masing-masing
    */
   addActivityWithPhotos(activityPayload, rawPhotos) {
     const queue = this.getAll();
@@ -223,18 +261,19 @@ const OfflineQueue = {
     for (const item of queue) {
       try {
         if (item.type === 'activityWithPhotos') {
-          const photoIds = [];
+          // photo_id dan activity_id SUDAH ditentukan sejak awal (saat
+          // pertama kali disimpan ke antrian) — dikirim apa adanya di sini
+          // supaya backend yang idempotent bisa mengenali kalau sebagian
+          // sudah pernah berhasil terkirim sebelumnya (tidak dobel).
           for (const photo of item.rawPhotos) {
-            const uploadResult = await Api.rawCall('uploadPhoto', {
+            await Api.rawCall('uploadPhoto', {
+              photo_id: photo.photoId,
               project_id: item.activityPayload.project_id,
               file_base64: photo.base64,
               mime_type: photo.mimeType
             });
-            if (uploadResult.data && uploadResult.data.photo_id) {
-              photoIds.push(uploadResult.data.photo_id);
-            }
           }
-          await Api.rawCall('createActivity', Object.assign({}, item.activityPayload, { photo_ids: photoIds }));
+          await Api.rawCall('createActivity', item.activityPayload);
         } else {
           await Api.rawCall(item.action, item.payload);
         }
@@ -507,13 +546,37 @@ const ProjectListView = {
       return;
     }
 
+    const serverProjects = result.data || [];
+    const serverIds = new Set(serverProjects.map((p) => p.Project_ID));
+
+    // Sertakan juga project yang MASIH tertunda di antrian offline (belum
+    // berhasil terkirim ke server) — supaya tetap terlihat di list walau
+    // aplikasi baru dibuka lagi/di-refresh, bukan cuma selama sesi berjalan.
+    // Project yang Project_ID-nya sudah muncul di data server (berarti sudah
+    // berhasil sync) TIDAK diikutkan lagi di sini, supaya tidak dobel tampil.
+    const pendingFromQueue = OfflineQueue.getAll()
+      .filter((item) => item.type === 'single' && item.action === 'createProject')
+      .map((item) => item.payload)
+      .filter((p) => !serverIds.has(p.project_id))
+      .map((p) => ({
+        Project_ID: p.project_id,
+        Project_Name: p.project_name,
+        Location_Address: p.location_address,
+        Product_Type: p.product_type,
+        Pipeline_Stage: 'New Visit',
+        Estimated_Value: '',
+        Health_Status: 'Aktif',
+        Date_Created: new Date().toISOString(),
+        _pendingSync: true
+      }));
+
     // Urutkan project terbaru di paling atas (data dari sheet secara alami
     // berurutan lama->baru sesuai baris, jadi perlu dibalik di sini)
-    const projects = (result.data || []).slice().sort((a, b) => {
+    const projects = serverProjects.slice().sort((a, b) => {
       return new Date(b.Date_Created) - new Date(a.Date_Created);
     });
 
-    State.projectsCache = projects;
+    State.projectsCache = pendingFromQueue.concat(projects);
     this.applyQuickFilterAndSearch();
   },
 
@@ -553,6 +616,9 @@ const ProjectListView = {
     projects.forEach((p) => {
       const dotClass = Utils.healthDotClass(p);
       const valueText = p.Estimated_Value ? ('Rp ' + Number(p.Estimated_Value).toLocaleString('id-ID')) : '-';
+      const pendingBadge = p._pendingSync
+        ? '<span class="pending-badge">⏳ Menunggu Sync</span>'
+        : '';
 
       const card = document.createElement('div');
       card.className = 'card';
@@ -564,7 +630,8 @@ const ProjectListView = {
         '<h3 class="card-title"><span class="dot ' + dotClass + '"></span>' + p.Project_Name + '</h3>' +
         '<p class="card-sub">' + p.Pipeline_Stage + ' · ' + valueText + '</p>' +
         '<p class="card-sub-light">📍 ' + (p.Location_Address || '-') + '</p>' +
-        '<p class="card-sub-light">🔧 ' + (p.Product_Type || '-') + '</p>';
+        '<p class="card-sub-light">🔧 ' + (p.Product_Type || '-') + '</p>' +
+        pendingBadge;
       container.appendChild(card);
     });
 
@@ -685,6 +752,7 @@ const AddProjectSheet = {
     }
 
     const payload = {
+      project_id: IdGen.projectId(),
       project_name: name,
       location_address: address,
       product_type: State.selectedProductTypes.join(', '),
@@ -692,28 +760,38 @@ const AddProjectSheet = {
       construction_stage: document.getElementById('select-construction-stage').value
     };
 
-    Snackbar.showPersistent('Menyimpan project...');
+    // Tambahkan langsung ke tampilan lokal (optimistic) — supaya project
+    // baru langsung terlihat di "Project Saya" walau server belum sempat
+    // mengonfirmasi. Ditandai _pendingSync sampai server benar-benar merespons.
+    State.projectsCache.unshift({
+      Project_ID: payload.project_id,
+      Project_Name: payload.project_name,
+      Location_Address: payload.location_address,
+      Product_Type: payload.product_type,
+      Pipeline_Stage: 'New Visit',
+      Estimated_Value: '',
+      Health_Status: 'Aktif',
+      Date_Created: new Date().toISOString(),
+      _pendingSync: true
+    });
 
-    const result = await Api.call('createProject', payload);
-
-    if (!result.success && !result.queued) {
-      Snackbar.show(result.message || 'Gagal membuat project');
-      return;
-    }
-
-    Snackbar.show(result.queued ? result.message : 'Project berhasil dibuat');
     SheetManager.close('sheet-add-project');
 
-    const newProjectId = result.data ? result.data.project_id : null;
-
-    // Sesuai alur di UI/UX Design: setelah project baru dibuat,
-    // otomatis lanjut ke Update Progress untuk kunjungan pertama
-    if (newProjectId) {
-      State.currentProjectStage = 'New Visit';
-      UpdateProgressSheet.open(newProjectId, name, 'New Visit');
-    }
-
+    // Sesuai alur di UI/UX Design: setelah project baru dibuat, otomatis
+    // lanjut ke Update Progress untuk kunjungan pertama. Ini dilakukan
+    // SEGERA (tidak menunggu balasan server) karena project_id sudah pasti
+    // dibuat di atas — request ke server dikirim di belakang layar.
+    State.currentProjectStage = 'New Visit';
+    UpdateProgressSheet.open(payload.project_id, name, 'New Visit');
     Router.refreshCurrentView();
+
+    Api.call('createProject', payload).then((result) => {
+      if (!result.success && !result.queued) {
+        Snackbar.show(result.message || 'Gagal menyimpan project ke server');
+      }
+      // Kalau berhasil ATAU sudah masuk antrian offline, tidak perlu
+      // notifikasi tambahan — sales sudah lihat project-nya sejak tadi.
+    });
   }
 };
 
@@ -857,16 +935,23 @@ const UpdateProgressSheet = {
     // Catatan: foto SENGAJA tidak divalidasi wajib di sini — foto bersifat
     // opsional, boleh 0, 1, atau lebih dari 1.
 
+    const activityId = IdGen.activityId();
+    const photoAssignments = State.pendingPhotos.map((p) => ({
+      photoId: IdGen.photoId(),
+      base64: p.base64,
+      mimeType: p.mimeType
+    }));
+
     const activityPayload = {
+      activity_id: activityId,
       project_id: State.currentProjectId,
       activity_type: State.selectedActivityType,
       activity_note: note,
       pipeline_stage: stage,
       next_followup_date: followupDate,
-      lost_reason: stage === 'Lost' ? State.selectedLostReason : undefined
+      lost_reason: stage === 'Lost' ? State.selectedLostReason : undefined,
+      photo_ids: photoAssignments.map((p) => p.photoId)
     };
-
-    const rawPhotos = State.pendingPhotos.map((p) => ({ base64: p.base64, mimeType: p.mimeType }));
 
     // Tutup sheet & beri feedback SEGERA — supaya sales tidak menunggu
     // proses upload/jaringan selesai dulu baru bisa lanjut kerja.
@@ -875,21 +960,20 @@ const UpdateProgressSheet = {
     Snackbar.showPersistent('Menyimpan...');
 
     try {
-      // 1. Upload setiap foto satu per satu (kalau ada), kumpulkan photo_id-nya
-      const photoIds = [];
-      for (const photo of rawPhotos) {
-        const uploadResult = await Api.rawCall('uploadPhoto', {
+      // Upload setiap foto satu per satu (kalau ada) — photo_id sudah
+      // ditentukan di atas, dikirim ke server supaya idempotent kalau
+      // request ini perlu diulang.
+      for (const photo of photoAssignments) {
+        await Api.rawCall('uploadPhoto', {
+          photo_id: photo.photoId,
           project_id: State.currentProjectId,
           file_base64: photo.base64,
           mime_type: photo.mimeType
         });
-        if (uploadResult.data && uploadResult.data.photo_id) {
-          photoIds.push(uploadResult.data.photo_id);
-        }
       }
 
-      // 2. Buat Activity, kaitkan dengan seluruh photo_id hasil upload di atas
-      const activityResult = await Api.rawCall('createActivity', Object.assign({}, activityPayload, { photo_ids: photoIds }));
+      // Buat Activity — activity_id & photo_ids sudah ditentukan di atas
+      const activityResult = await Api.rawCall('createActivity', activityPayload);
 
       if (!activityResult.success) {
         Snackbar.show(activityResult.message || 'Gagal menyimpan aktivitas');
@@ -900,11 +984,12 @@ const UpdateProgressSheet = {
       Router.refreshCurrentView();
     } catch (networkError) {
       // Jaringan gagal/lambat (timeout) di salah satu tahap manapun —
-      // simpan SATU paket gabungan (aktivitas + seluruh foto mentah) ke
-      // antrian lokal, supaya tidak ada foto yang "nyasar" tanpa aktivitas
-      // saat proses sync belakangan.
-      OfflineQueue.addActivityWithPhotos(activityPayload, rawPhotos);
-      Snackbar.show('Tersimpan lokal (' + (rawPhotos.length + 1) + ' data) — akan dikirim otomatis saat online');
+      // simpan SATU paket gabungan (aktivitas + seluruh foto mentah,
+      // lengkap dengan ID yang sudah ditentukan di atas) ke antrian lokal,
+      // supaya saat sync belakangan tidak ada foto yang "nyasar" tanpa
+      // aktivitas, dan tidak ada data dobel walau diulang berkali-kali.
+      OfflineQueue.addActivityWithPhotos(activityPayload, photoAssignments);
+      Snackbar.show('Tersimpan lokal (' + (photoAssignments.length + 1) + ' data) — akan dikirim otomatis saat online');
       Router.refreshCurrentView();
     }
   }
