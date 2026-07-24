@@ -39,7 +39,7 @@ const State = {
   selectedActivityType: null, // untuk form Update Progress
   selectedLostReason: null,
   selectedFollowupDate: null,
-  pendingPhoto: null,         // { base64, mimeType }
+  pendingPhotos: [],         // array of { base64, mimeType, previewUrl } — foto opsional, boleh lebih dari 1
 
   quickFilter: 'Semua',
   filterStage: '',
@@ -138,11 +138,33 @@ const OfflineQueue = {
 
   saveAll(queue) {
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(queue));
+    this.updateBanner();
   },
 
+  /** Menambah item tunggal (1 action + payload biasa, misal createProject) */
   add(action, payload) {
     const queue = this.getAll();
-    queue.push({ action, payload, queuedAt: Date.now() });
+    queue.push({ type: 'single', action, payload, queuedAt: Date.now() });
+    this.saveAll(queue);
+  },
+
+  /**
+   * Menambah item GABUNGAN: 1 aktivitas beserta banyak foto mentahnya
+   * (belum diupload). Dipakai saat submit Update Progress gagal terkirim
+   * karena sinyal lemah — supaya foto & aktivitas selalu tersinkron
+   * bersamaan saat sync nanti, tidak ada foto yang "nyasar" tanpa aktivitas.
+   *
+   * @param {Object} activityPayload - payload createActivity (tanpa photo_ids)
+   * @param {Array<{base64,mimeType}>} rawPhotos - foto mentah yang belum diupload
+   */
+  addActivityWithPhotos(activityPayload, rawPhotos) {
+    const queue = this.getAll();
+    queue.push({
+      type: 'activityWithPhotos',
+      activityPayload,
+      rawPhotos,
+      queuedAt: Date.now()
+    });
     this.saveAll(queue);
   },
 
@@ -150,7 +172,25 @@ const OfflineQueue = {
     return this.getAll().length;
   },
 
-  /** Mengirim ulang seluruh antrian secara berurutan (bukan paralel) */
+  /** Menampilkan/menyembunyikan banner jumlah data yang masih tertunda */
+  updateBanner() {
+    const banner = document.getElementById('pending-sync-banner');
+    const countEl = document.getElementById('pending-sync-count');
+    const total = this.count();
+    if (!banner) return;
+    if (total > 0) {
+      countEl.textContent = total;
+      banner.hidden = false;
+    } else {
+      banner.hidden = true;
+    }
+  },
+
+  /**
+   * Mengirim ulang seluruh antrian secara berurutan (bukan paralel).
+   * Menangani 2 jenis item: 'single' (langsung rawCall) dan
+   * 'activityWithPhotos' (upload foto dulu satu-satu, baru createActivity).
+   */
   async syncAll() {
     const queue = this.getAll();
     if (queue.length === 0) return;
@@ -160,7 +200,22 @@ const OfflineQueue = {
 
     for (const item of queue) {
       try {
-        await Api.rawCall(item.action, item.payload);
+        if (item.type === 'activityWithPhotos') {
+          const photoIds = [];
+          for (const photo of item.rawPhotos) {
+            const uploadResult = await Api.rawCall('uploadPhoto', {
+              project_id: item.activityPayload.project_id,
+              file_base64: photo.base64,
+              mime_type: photo.mimeType
+            });
+            if (uploadResult.data && uploadResult.data.photo_id) {
+              photoIds.push(uploadResult.data.photo_id);
+            }
+          }
+          await Api.rawCall('createActivity', Object.assign({}, item.activityPayload, { photo_ids: photoIds }));
+        } else {
+          await Api.rawCall(item.action, item.payload);
+        }
         successCount++;
       } catch (err) {
         remaining.push(item); // gagal lagi -> tetap simpan untuk percobaan berikutnya
@@ -181,6 +236,14 @@ const OfflineQueue = {
    ============================================================ */
 const Api = {
   /**
+   * Batas waktu tunggu jaringan sebelum dianggap gagal dan dialihkan ke
+   * penyimpanan lokal. Tujuannya supaya sales TIDAK menunggu lama tanpa
+   * kepastian saat sinyal lemah — submit tetap terasa cepat, data aman
+   * tersimpan lokal, dan dikirim belakangan lewat sync.
+   */
+  TIMEOUT_MS: 8000,
+
+  /**
    * Panggilan API mentah (tanpa penanganan offline) — dipakai
    * juga oleh OfflineQueue.syncAll() saat mengirim ulang data.
    *
@@ -189,6 +252,11 @@ const Api = {
    * (OPTIONS) yang tidak ditangani oleh Google Apps Script secara
    * default. Apps Script tetap mem-parsing body ini sebagai JSON
    * di sisi server (lihat Code.gs -> JSON.parse(e.postData.contents)).
+   *
+   * Dibatasi waktu tunggu (TIMEOUT_MS) lewat AbortController — kalau
+   * server tidak merespons dalam batas waktu itu, request dibatalkan
+   * dan dianggap gagal (supaya pemanggil bisa langsung fallback ke
+   * penyimpanan lokal, bukan menunggu tanpa batas).
    */
   rawCall(action, payload) {
     const body = Object.assign(
@@ -196,11 +264,17 @@ const Api = {
       payload
     );
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.TIMEOUT_MS);
+
     return fetch(SVS_CONFIG.API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(body)
-    }).then((res) => res.json());
+      body: JSON.stringify(body),
+      signal: controller.signal
+    })
+      .then((res) => res.json())
+      .finally(() => clearTimeout(timeoutId));
   },
 
   /**
@@ -610,13 +684,12 @@ const UpdateProgressSheet = {
       if (!file) return;
       try {
         const { base64, mimeType, previewUrl } = await Utils.compressAndReadImage(file);
-        State.pendingPhoto = { base64, mimeType };
-        const preview = document.getElementById('photo-preview');
-        preview.src = previewUrl;
-        preview.hidden = false;
+        State.pendingPhotos.push({ base64, mimeType, previewUrl });
+        this.renderPhotoThumbnails();
       } catch (err) {
         Snackbar.show('Gagal memproses foto, coba lagi');
       }
+      e.target.value = ''; // reset input supaya bisa ambil foto lagi dari sumber sama
     });
 
     document.getElementById('select-pipeline-stage').addEventListener('change', (e) => {
@@ -665,11 +738,11 @@ const UpdateProgressSheet = {
     State.currentProjectName = projectName;
     State.selectedActivityType = null;
     State.selectedLostReason = null;
-    State.pendingPhoto = null;
+    State.pendingPhotos = [];
 
     document.getElementById('form-update-progress').reset();
     document.getElementById('update-progress-project-name').textContent = projectName;
-    document.getElementById('photo-preview').hidden = true;
+    this.renderPhotoThumbnails();
     document.getElementById('lost-reason-group').hidden = true;
     document.querySelectorAll('#activity-type-grid .activity-type-btn').forEach((b) => b.classList.remove('selected'));
     document.querySelectorAll('#lost-reason-chips .chip').forEach((c) => c.classList.remove('selected'));
@@ -682,6 +755,29 @@ const UpdateProgressSheet = {
     SheetManager.open('sheet-update-progress');
   },
 
+  /** Menampilkan ulang seluruh thumbnail foto yang sudah diambil, dengan tombol hapus per foto */
+  renderPhotoThumbnails() {
+    const container = document.getElementById('photo-thumbnail-list');
+    container.innerHTML = '';
+
+    State.pendingPhotos.forEach((photo, index) => {
+      const item = document.createElement('div');
+      item.className = 'photo-thumbnail-item';
+      item.innerHTML =
+        '<img src="' + photo.previewUrl + '" alt="Foto kunjungan ' + (index + 1) + '" />' +
+        '<button type="button" class="photo-thumbnail-remove" data-remove-photo-index="' + index + '">✕</button>';
+      container.appendChild(item);
+    });
+
+    container.querySelectorAll('[data-remove-photo-index]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.removePhotoIndex, 10);
+        State.pendingPhotos.splice(idx, 1);
+        this.renderPhotoThumbnails();
+      });
+    });
+  },
+
   async submit() {
     const note = document.getElementById('input-activity-note').value.trim();
     const stage = document.getElementById('select-pipeline-stage').value;
@@ -689,10 +785,6 @@ const UpdateProgressSheet = {
 
     if (!State.selectedActivityType) {
       Snackbar.show('Pilih jenis aktivitas terlebih dahulu');
-      return;
-    }
-    if (!State.pendingPhoto) {
-      Snackbar.show('Foto kunjungan wajib diambil');
       return;
     }
     if (!note) {
@@ -707,42 +799,59 @@ const UpdateProgressSheet = {
       Snackbar.show('Pilih alasan Lost terlebih dahulu');
       return;
     }
+    // Catatan: foto SENGAJA tidak divalidasi wajib di sini — foto bersifat
+    // opsional, boleh 0, 1, atau lebih dari 1.
 
-    // 1. Upload foto terlebih dahulu (request terpisah, sesuai Architecture Design)
-    const photoResult = await Api.call('uploadPhoto', {
-      project_id: State.currentProjectId,
-      file_base64: State.pendingPhoto.base64,
-      mime_type: State.pendingPhoto.mimeType
-    });
-
-    if (!photoResult.success && !photoResult.queued) {
-      Snackbar.show(photoResult.message || 'Gagal mengunggah foto');
-      return;
-    }
-
-    const photoId = photoResult.data ? photoResult.data.photo_id : null;
-
-    // 2. Buat Activity, kaitkan dengan photo_id hasil upload (jika ada)
     const activityPayload = {
       project_id: State.currentProjectId,
       activity_type: State.selectedActivityType,
       activity_note: note,
       pipeline_stage: stage,
       next_followup_date: followupDate,
-      lost_reason: stage === 'Lost' ? State.selectedLostReason : undefined,
-      photo_id: photoId
+      lost_reason: stage === 'Lost' ? State.selectedLostReason : undefined
     };
 
-    const activityResult = await Api.call('createActivity', activityPayload);
+    const rawPhotos = State.pendingPhotos.map((p) => ({ base64: p.base64, mimeType: p.mimeType }));
 
-    if (!activityResult.success && !activityResult.queued) {
-      Snackbar.show(activityResult.message || 'Gagal menyimpan aktivitas');
-      return;
-    }
-
-    Snackbar.show(activityResult.queued ? activityResult.message : 'Aktivitas tersimpan');
+    // Tutup sheet & beri feedback SEGERA — supaya sales tidak menunggu
+    // proses upload/jaringan selesai dulu baru bisa lanjut kerja.
+    // Proses upload+simpan aktivitas berjalan di background setelah ini.
     SheetManager.close('sheet-update-progress');
-    Router.refreshCurrentView();
+    Snackbar.show('Menyimpan...');
+
+    try {
+      // 1. Upload setiap foto satu per satu (kalau ada), kumpulkan photo_id-nya
+      const photoIds = [];
+      for (const photo of rawPhotos) {
+        const uploadResult = await Api.rawCall('uploadPhoto', {
+          project_id: State.currentProjectId,
+          file_base64: photo.base64,
+          mime_type: photo.mimeType
+        });
+        if (uploadResult.data && uploadResult.data.photo_id) {
+          photoIds.push(uploadResult.data.photo_id);
+        }
+      }
+
+      // 2. Buat Activity, kaitkan dengan seluruh photo_id hasil upload di atas
+      const activityResult = await Api.rawCall('createActivity', Object.assign({}, activityPayload, { photo_ids: photoIds }));
+
+      if (!activityResult.success) {
+        Snackbar.show(activityResult.message || 'Gagal menyimpan aktivitas');
+        return;
+      }
+
+      Snackbar.show('Aktivitas tersimpan');
+      Router.refreshCurrentView();
+    } catch (networkError) {
+      // Jaringan gagal/lambat (timeout) di salah satu tahap manapun —
+      // simpan SATU paket gabungan (aktivitas + seluruh foto mentah) ke
+      // antrian lokal, supaya tidak ada foto yang "nyasar" tanpa aktivitas
+      // saat proses sync belakangan.
+      OfflineQueue.addActivityWithPhotos(activityPayload, rawPhotos);
+      Snackbar.show('Tersimpan lokal (' + (rawPhotos.length + 1) + ' data) — akan dikirim otomatis saat online');
+      Router.refreshCurrentView();
+    }
   }
 };
 
@@ -906,6 +1015,15 @@ function initApp() {
   window.addEventListener('online', updateConnectionState);
   window.addEventListener('offline', updateConnectionState);
   updateConnectionState();
+
+  // Tombol manual "Sync Sekarang" — untuk kondisi sinyal naik-turun,
+  // di mana event 'online' browser belum tentu langsung terpicu tapi
+  // sales sudah tahu sinyalnya sedang bagus.
+  document.getElementById('pending-sync-banner').addEventListener('click', () => {
+    Snackbar.show('Mencoba sync...');
+    OfflineQueue.syncAll();
+  });
+  OfflineQueue.updateBanner();
 
   // Registrasi Service Worker untuk dukungan PWA & offline app-shell
   if ('serviceWorker' in navigator) {
