@@ -175,11 +175,19 @@ const OfflineQueue = {
   /** Menampilkan/menyembunyikan banner jumlah data yang masih tertunda */
   updateBanner() {
     const banner = document.getElementById('pending-sync-banner');
-    const countEl = document.getElementById('pending-sync-count');
-    const total = this.count();
     if (!banner) return;
+
+    if (this.isSyncing) {
+      banner.innerHTML = '<span class="snackbar-spinner"></span>Menyinkronkan data...';
+      banner.disabled = true;
+      banner.hidden = false;
+      return;
+    }
+
+    banner.disabled = false;
+    const total = this.count();
     if (total > 0) {
-      countEl.textContent = total;
+      banner.innerHTML = '📤 <span id="pending-sync-count">' + total + '</span> data menunggu dikirim — Tap untuk sync sekarang';
       banner.hidden = false;
     } else {
       banner.hidden = true;
@@ -190,13 +198,27 @@ const OfflineQueue = {
    * Mengirim ulang seluruh antrian secara berurutan (bukan paralel).
    * Menangani 2 jenis item: 'single' (langsung rawCall) dan
    * 'activityWithPhotos' (upload foto dulu satu-satu, baru createActivity).
+   *
+   * Dilindungi dengan penguncian (isSyncing) — kalau fungsi ini dipanggil
+   * lagi SAAT proses sebelumnya masih berjalan (misal tombol "Sync Sekarang"
+   * ditekan berkali-kali, atau auto-sync dan manual-sync kebetulan
+   * bersamaan), panggilan kedua langsung diabaikan. Tanpa penguncian ini,
+   * kedua proses akan membaca antrian yang sama sebelum salah satu selesai
+   * menghapusnya, menyebabkan data yang sama terkirim dua kali.
    */
-  async syncAll() {
-    const queue = this.getAll();
-    if (queue.length === 0) return;
+  isSyncing: false,
 
-    let successCount = 0;
-    const remaining = [];
+  async syncAll() {
+    if (this.isSyncing) return;
+    this.isSyncing = true;
+    this.updateBanner(); // tampilkan spinner + "Menyinkronkan..." di banner
+
+    try {
+      const queue = this.getAll();
+      if (queue.length === 0) return;
+
+      let successCount = 0;
+      const remaining = [];
 
     for (const item of queue) {
       try {
@@ -222,11 +244,15 @@ const OfflineQueue = {
       }
     }
 
-    this.saveAll(remaining);
+      this.saveAll(remaining);
 
-    if (successCount > 0) {
-      Snackbar.show(successCount + ' data tertunda berhasil disinkronkan');
-      Router.refreshCurrentView();
+      if (successCount > 0) {
+        Snackbar.show(successCount + ' data tertunda berhasil disinkronkan');
+        Router.refreshCurrentView();
+      }
+    } finally {
+      this.isSyncing = false;
+      this.updateBanner(); // kembalikan tampilan banner ke normal (hitung ulang / sembunyikan)
     }
   }
 };
@@ -314,6 +340,10 @@ const Snackbar = {
     this.el = document.getElementById('snackbar');
   },
 
+  /**
+   * Menampilkan snackbar yang otomatis hilang setelah `duration` (default 2.5 detik).
+   * Dipakai untuk pesan hasil akhir (sukses/gagal).
+   */
   show(message, duration) {
     if (!this.el) return;
     this.el.textContent = message;
@@ -322,6 +352,20 @@ const Snackbar = {
     this.timer = setTimeout(() => {
       this.el.classList.remove('show');
     }, duration || 2500);
+  },
+
+  /**
+   * Menampilkan snackbar dengan ikon loading berputar, yang TIDAK otomatis
+   * hilang — tetap tampil sampai dipanggil show()/showPersistent() lain
+   * (biasanya dengan pesan hasil akhir). Dipakai selama proses yang
+   * memakan waktu (upload foto, simpan aktivitas, sync) supaya sales tahu
+   * prosesnya masih berjalan, bukan diam-diam menghilang di tengah proses.
+   */
+  showPersistent(message) {
+    if (!this.el) return;
+    clearTimeout(this.timer);
+    this.el.innerHTML = '<span class="snackbar-spinner"></span>' + message;
+    this.el.classList.add('show');
   }
 };
 
@@ -648,6 +692,8 @@ const AddProjectSheet = {
       construction_stage: document.getElementById('select-construction-stage').value
     };
 
+    Snackbar.showPersistent('Menyimpan project...');
+
     const result = await Api.call('createProject', payload);
 
     if (!result.success && !result.queued) {
@@ -826,7 +872,7 @@ const UpdateProgressSheet = {
     // proses upload/jaringan selesai dulu baru bisa lanjut kerja.
     // Proses upload+simpan aktivitas berjalan di background setelah ini.
     SheetManager.close('sheet-update-progress');
-    Snackbar.show('Menyimpan...');
+    Snackbar.showPersistent('Menyimpan...');
 
     try {
       // 1. Upload setiap foto satu per satu (kalau ada), kumpulkan photo_id-nya
@@ -1042,7 +1088,6 @@ function initApp() {
   // di mana event 'online' browser belum tentu langsung terpicu tapi
   // sales sudah tahu sinyalnya sedang bagus.
   document.getElementById('pending-sync-banner').addEventListener('click', () => {
-    Snackbar.show('Mencoba sync...');
     OfflineQueue.syncAll();
   });
   OfflineQueue.updateBanner();
