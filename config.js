@@ -17,7 +17,7 @@
 
 const SVS_CONFIG = {
   // Identitas sales pengguna device ini — WAJIB cocok dengan sheet Sales_Master
-  SALES_CODE: 'SLS-01',
+  SALES_CODE: 'SLS-02',
   SALES_NAME: 'Difo',
   TOKEN: 'aluve-0002',
 
