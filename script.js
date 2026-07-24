@@ -237,11 +237,14 @@ const OfflineQueue = {
 const Api = {
   /**
    * Batas waktu tunggu jaringan sebelum dianggap gagal dan dialihkan ke
-   * penyimpanan lokal. Tujuannya supaya sales TIDAK menunggu lama tanpa
-   * kepastian saat sinyal lemah — submit tetap terasa cepat, data aman
-   * tersimpan lokal, dan dikirim belakangan lewat sync.
+   * penyimpanan lokal. Dibuat cukup longgar (15 detik) karena Google Apps
+   * Script kadang butuh beberapa detik untuk "bangun" (cold start) setelah
+   * idle — bukan karena sinyal buruk. Timeout terlalu ketat (misal 8 detik)
+   * berisiko menganggap request yang sebenarnya masih berjalan normal
+   * sebagai gagal, sehingga data disimpan lokal padahal sebenarnya bisa
+   * berhasil kalau ditunggu sedikit lebih lama.
    */
-  TIMEOUT_MS: 8000,
+  TIMEOUT_MS: 15000,
 
   /**
    * Panggilan API mentah (tanpa penanganan offline) — dipakai
@@ -460,7 +463,13 @@ const ProjectListView = {
       return;
     }
 
-    State.projectsCache = result.data || [];
+    // Urutkan project terbaru di paling atas (data dari sheet secara alami
+    // berurutan lama->baru sesuai baris, jadi perlu dibalik di sini)
+    const projects = (result.data || []).slice().sort((a, b) => {
+      return new Date(b.Date_Created) - new Date(a.Date_Created);
+    });
+
+    State.projectsCache = projects;
     this.applyQuickFilterAndSearch();
   },
 
@@ -986,14 +995,27 @@ const Router = {
    14. INIT
    ============================================================ */
 function initApp() {
-  Snackbar.init();
-  ThemeToggle.init();
-  Router.init();
-  SheetManager.init();
-  DashboardView.init();
-  AddProjectSheet.init();
-  UpdateProgressSheet.init();
-  FilterSheet.init();
+  // Setiap modul di-init lewat wrapper aman ini — supaya kalau ada 1 modul
+  // gagal karena error tak terduga, modul-modul LAIN tetap ter-inisialisasi
+  // normal (sebelumnya: satu error di tengah bisa menghentikan seluruh sisa
+  // initApp(), membuat tombol-tombol setelahnya jadi tidak merespons sama
+  // sekali tanpa pesan error yang terlihat).
+  function safeInit(name, fn) {
+    try {
+      fn();
+    } catch (err) {
+      console.error('Gagal inisialisasi ' + name + ':', err);
+    }
+  }
+
+  safeInit('Snackbar', () => Snackbar.init());
+  safeInit('ThemeToggle', () => ThemeToggle.init());
+  safeInit('Router', () => Router.init());
+  safeInit('SheetManager', () => SheetManager.init());
+  safeInit('DashboardView', () => DashboardView.init());
+  safeInit('AddProjectSheet', () => AddProjectSheet.init());
+  safeInit('UpdateProgressSheet', () => UpdateProgressSheet.init());
+  safeInit('FilterSheet', () => FilterSheet.init());
 
   document.getElementById('header-title').textContent =
     'Halo, ' + SVS_CONFIG.SALES_NAME.split(' ')[0] + ' 👋';
