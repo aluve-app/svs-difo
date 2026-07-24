@@ -127,6 +127,7 @@
           <h3 id="timeline-project-name" class="card-title">-</h3>
           <p id="timeline-project-meta" class="card-sub">-</p>
           <p id="timeline-project-address" class="card-sub-light">-</p>
+          <div id="timeline-project-contacts" class="contact-list"></div>
         </div>
 
         <div id="timeline-list" class="timeline">
@@ -283,7 +284,11 @@
         <div class="form-group">
           <label class="form-label">📷 Foto Kunjungan (opsional, boleh lebih dari 1)</label>
           <input id="input-photo" type="file" accept="image/*" capture="environment" hidden />
-          <button id="btn-take-photo" class="secondary-button full-width" type="button">Ambil Foto</button>
+          <input id="input-gallery" type="file" accept="image/*" multiple hidden />
+          <div class="photo-source-buttons">
+            <button id="btn-take-photo" class="secondary-button" type="button">📷 Ambil Foto</button>
+            <button id="btn-pick-gallery" class="secondary-button" type="button">🖼️ Pilih dari Galeri</button>
+          </div>
           <div id="photo-thumbnail-list" class="photo-thumbnail-list"></div>
         </div>
 
