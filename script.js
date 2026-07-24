@@ -85,7 +85,8 @@ const IdGen = {
   },
   projectId() { return 'PRJ-' + this.formatDate(new Date()) + '-' + this.randomSuffix(); },
   activityId() { return 'ACT-' + this.formatDateTime(new Date()) + '-' + this.randomSuffix(); },
-  photoId() { return 'PHT-' + this.formatDateTime(new Date()) + '-' + this.randomSuffix(); }
+  photoId() { return 'PHT-' + this.formatDateTime(new Date()) + '-' + this.randomSuffix(); },
+  contactId() { return 'CNT-' + this.formatDate(new Date()) + '-' + this.randomSuffix(); }
 };
 
 /* ============================================================
@@ -352,7 +353,7 @@ const Api = {
    * OfflineQueue dan dianggap "berhasil secara lokal".
    */
   async call(action, payload, options) {
-    const queueableActions = ['createProject', 'createActivity', 'uploadPhoto'];
+    const queueableActions = ['createProject', 'createActivity', 'uploadPhoto', 'createContact'];
     const opts = options || {};
 
     try {
@@ -405,6 +406,32 @@ const Snackbar = {
     clearTimeout(this.timer);
     this.el.innerHTML = '<span class="snackbar-spinner"></span>' + message;
     this.el.classList.add('show');
+  }
+};
+
+/* ============================================================
+   5b. LOADING INDICATOR (teks dengan titik animasi, misal "Memuat...")
+   ============================================================ */
+const LoadingIndicator = {
+  intervalId: null,
+
+  /** Mulai animasi titik pada sebuah elemen, contoh hasil: "Memuat", "Memuat.", "Memuat..", "Memuat..." */
+  start(el, baseText) {
+    if (!el) return;
+    this.stop();
+    let dots = 0;
+    el.textContent = baseText;
+    this.intervalId = setInterval(() => {
+      dots = (dots + 1) % 4;
+      el.textContent = baseText + '.'.repeat(dots);
+    }, 400);
+  },
+
+  stop() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
   }
 };
 
@@ -661,17 +688,39 @@ const TimelineView = {
     document.getElementById('timeline-project-meta').textContent = stage;
     document.getElementById('timeline-project-address').textContent = address || '-';
 
+    // PENTING: bersihkan konten lama SEGERA (foto/aktivitas project
+    // sebelumnya) dan tampilkan loading — supaya sales tidak sempat
+    // melihat data project LAIN sekilas saat berpindah, yang bisa
+    // dikira aplikasi error/nyasar.
+    const listContainer = document.getElementById('timeline-list');
+    listContainer.innerHTML = '<p id="timeline-loading" class="loading-text">Memuat riwayat aktivitas</p>';
+    LoadingIndicator.start(document.getElementById('timeline-loading'), 'Memuat riwayat aktivitas');
+
     Router.goTo('timeline');
-    await this.load(projectId);
   },
 
   async load(projectId) {
     const result = await Api.call('readActivityTimeline', { project_id: projectId }, { noQueue: true }).catch(() => null);
+    LoadingIndicator.stop();
+
     if (!result || !result.success) {
       Snackbar.show('Gagal memuat riwayat aktivitas');
+      document.getElementById('timeline-list').innerHTML = '<p class="empty-state">Gagal memuat data. Coba lagi.</p>';
       return;
     }
+
     this.render(result.data || []);
+
+    // Perbarui status utama di header berdasarkan aktivitas TERBARU
+    // (sebelumnya header hanya memakai status dari saat kartu di-tap,
+    // jadi tidak ikut berubah setelah ada follow up baru)
+    if (result.data && result.data.length > 0) {
+      const latestStage = result.data[0].Pipeline_Stage_At_This_Point;
+      if (latestStage) {
+        State.currentProjectStage = latestStage;
+        document.getElementById('timeline-project-meta').textContent = latestStage;
+      }
+    }
   },
 
   render(activities) {
@@ -792,6 +841,28 @@ const AddProjectSheet = {
       // Kalau berhasil ATAU sudah masuk antrian offline, tidak perlu
       // notifikasi tambahan — sales sudah lihat project-nya sejak tadi.
     });
+
+    // Info kontak bersifat OPSIONAL — kalau salah satu field diisi,
+    // kirim sebagai request terpisah (tidak menghalangi alur utama project).
+    const contactName = document.getElementById('input-contact-name').value.trim();
+    const contactPhone = document.getElementById('input-contact-phone').value.trim();
+    const contactRole = document.getElementById('select-contact-role').value;
+
+    if (contactName && contactPhone && contactRole) {
+      Api.call('createContact', {
+        contact_id: IdGen.contactId(),
+        project_id: payload.project_id,
+        contact_name: contactName,
+        phone_number: contactPhone,
+        role: contactRole
+      }).then((result) => {
+        if (!result.success && !result.queued) {
+          Snackbar.show('Gagal menyimpan info kontak: ' + (result.message || ''));
+        }
+      });
+    } else if (contactName || contactPhone || contactRole) {
+      Snackbar.show('Info kontak tidak disimpan — Nama, Telepon, dan Role harus diisi semua kalau ingin mencatat kontak');
+    }
   }
 };
 
