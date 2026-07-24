@@ -696,7 +696,36 @@ const TimelineView = {
     listContainer.innerHTML = '<p id="timeline-loading" class="loading-text">Memuat riwayat aktivitas</p>';
     LoadingIndicator.start(document.getElementById('timeline-loading'), 'Memuat riwayat aktivitas');
 
+    document.getElementById('timeline-project-contacts').innerHTML = '';
+    this.loadContacts(projectId); // berjalan paralel, tidak perlu ditunggu
+
     Router.goTo('timeline');
+  },
+
+  /**
+   * Mengambil & menampilkan kontak yang terhubung ke project ini (no. telepon
+   * & role), supaya sales tidak perlu mengingat-ingat kontak lokasi —
+   * nomor telepon bisa langsung diklik untuk telpon atau chat WhatsApp.
+   */
+  async loadContacts(projectId) {
+    const result = await Api.call('readProjectContacts', { project_id: projectId }, { noQueue: true }).catch(() => null);
+    const container = document.getElementById('timeline-project-contacts');
+    if (!result || !result.success || !result.data || result.data.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = result.data.map((c) => {
+      const digits = String(c.Phone_Number).replace(/\D/g, '');
+      const waNumber = digits.startsWith('0') ? '62' + digits.slice(1) : digits;
+      return (
+        '<div class="contact-item">' +
+        '👤 ' + c.Contact_Name + ' (' + c.Role + ')<br>' +
+        '<a href="tel:' + digits + '" class="contact-link">📞 Telpon</a> ' +
+        '<a href="https://wa.me/' + waNumber + '" target="_blank" rel="noopener" class="contact-link">💬 WhatsApp</a>' +
+        '</div>'
+      );
+    }).join('');
   },
 
   async load(projectId) {
@@ -883,18 +912,30 @@ const UpdateProgressSheet = {
       document.getElementById('input-photo').click();
     });
 
-    document.getElementById('input-photo').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      try {
-        const { base64, mimeType, previewUrl } = await Utils.compressAndReadImage(file);
-        State.pendingPhotos.push({ base64, mimeType, previewUrl });
-        this.renderPhotoThumbnails();
-      } catch (err) {
-        Snackbar.show('Gagal memproses foto, coba lagi');
-      }
-      e.target.value = ''; // reset input supaya bisa ambil foto lagi dari sumber sama
+    document.getElementById('btn-pick-gallery').addEventListener('click', () => {
+      document.getElementById('input-gallery').click();
     });
+
+    // Satu handler dipakai untuk KEDUA sumber foto (kamera & galeri) —
+    // mendukung lebih dari 1 file sekaligus (galeri bisa multi-select,
+    // kamera biasanya cuma 1 per pengambilan, tapi kode ini menangani
+    // keduanya dengan cara yang sama).
+    const handlePhotoFiles = async (e) => {
+      const files = Array.from(e.target.files || []);
+      for (const file of files) {
+        try {
+          const { base64, mimeType, previewUrl } = await Utils.compressAndReadImage(file);
+          State.pendingPhotos.push({ base64, mimeType, previewUrl });
+        } catch (err) {
+          Snackbar.show('Gagal memproses salah satu foto, dilewati');
+        }
+      }
+      this.renderPhotoThumbnails();
+      e.target.value = ''; // reset input supaya bisa pilih lagi dari sumber sama
+    };
+
+    document.getElementById('input-photo').addEventListener('change', handlePhotoFiles);
+    document.getElementById('input-gallery').addEventListener('change', handlePhotoFiles);
 
     document.getElementById('select-pipeline-stage').addEventListener('change', (e) => {
       const lostGroup = document.getElementById('lost-reason-group');
