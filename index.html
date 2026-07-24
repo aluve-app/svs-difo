@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1E3A8A" />
+  <meta name="description" content="Sales Visit System - pencatatan kunjungan dan follow up project aluminium" />
+
+  <title>SVS - Sales Visit System</title>
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SVS" />
+
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- ===================== TOP APP BAR ===================== -->
+    <header class="app-header">
+      <button id="btn-back" class="icon-btn" type="button" aria-label="Kembali" hidden>
+        <span class="material-icon">⬅️</span>
+      </button>
+      <h1 id="header-title" class="header-title">Halo 👋</h1>
+      <div class="header-actions">
+        <button id="btn-theme-toggle" class="icon-btn" type="button" aria-label="Ganti tema">
+          <span class="material-icon" id="theme-icon">🌙</span>
+        </button>
+        <button id="btn-notification" class="icon-btn" type="button" aria-label="Notifikasi">
+          <span class="material-icon">🔔</span>
+          <span id="badge-notification-count" class="badge" hidden>0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===================== OFFLINE BANNER ===================== -->
+    <div id="offline-banner" class="offline-banner" hidden>
+      📴 Tidak ada koneksi internet — data akan tersimpan lokal dan otomatis dikirim saat online
+    </div>
+
+    <!-- ===================== MAIN CONTENT AREA ===================== -->
+    <main id="view-container" class="view-container">
+
+      <!-- ---------- VIEW: DASHBOARD ---------- -->
+      <section id="view-dashboard" class="view active" data-view="dashboard">
+
+        <div class="section-block">
+          <h2 class="section-title">📋 Perlu Follow Up Hari Ini</h2>
+          <div id="followup-list" class="card-list">
+            <!-- diisi oleh script.js -->
+          </div>
+          <p id="followup-empty" class="empty-state" hidden>Tidak ada follow up yang jatuh tempo. Kerja bagus! 🎉</p>
+        </div>
+
+        <div class="section-block">
+          <h2 class="section-title">📊 Ringkasan Saya Bulan Ini</h2>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span id="summary-visit" class="summary-number">0</span>
+              <span class="summary-label">Visit</span>
+            </div>
+            <div class="summary-item">
+              <span id="summary-won" class="summary-number">0</span>
+              <span class="summary-label">Deal</span>
+            </div>
+            <div class="summary-item">
+              <span id="summary-lost" class="summary-number">0</span>
+              <span class="summary-label">Lost</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ---------- VIEW: PROJECT LIST ---------- -->
+      <section id="view-projects" class="view" data-view="projects">
+
+        <div class="search-bar">
+          <span class="material-icon">🔍</span>
+          <input id="input-search-project" type="text" placeholder="Cari nama project atau lokasi..." />
+          <button id="btn-open-filter" class="icon-btn" type="button" aria-label="Filter">
+            <span class="material-icon">🔧</span>
+          </button>
+        </div>
+
+        <div id="quick-filter-chips" class="chip-group scroll-x">
+          <button class="chip selected" type="button" data-quickfilter="Semua">Semua</button>
+          <button class="chip" type="button" data-quickfilter="Aktif">Aktif</button>
+          <button class="chip" type="button" data-quickfilter="Won">Won</button>
+          <button class="chip" type="button" data-quickfilter="Lost">Lost</button>
+        </div>
+
+        <div id="project-list" class="card-list">
+          <!-- diisi oleh script.js -->
+        </div>
+        <p id="project-list-empty" class="empty-state" hidden>Belum ada project. Tap tombol + untuk menambahkan.</p>
+
+      </section>
+
+      <!-- ---------- VIEW: ACTIVITY TIMELINE (Detail Project) ---------- -->
+      <section id="view-timeline" class="view" data-view="timeline">
+
+        <div class="timeline-header card">
+          <h3 id="timeline-project-name" class="card-title">-</h3>
+          <p id="timeline-project-meta" class="card-sub">-</p>
+          <p id="timeline-project-address" class="card-sub-light">-</p>
+        </div>
+
+        <div id="timeline-list" class="timeline">
+          <!-- diisi oleh script.js -->
+        </div>
+
+        <button id="btn-add-activity-from-timeline" class="primary-button full-width sticky-bottom" type="button">
+          + Catat Aktivitas Baru
+        </button>
+
+      </section>
+
+    </main>
+
+    <!-- ===================== FAB ===================== -->
+    <button id="fab-add-project" class="fab" type="button" aria-label="Tambah Project">
+      <span class="material-icon">➕</span>
+    </button>
+
+    <!-- ===================== BOTTOM NAVIGATION ===================== -->
+    <nav class="bottom-nav">
+      <button class="bottom-nav-item active" type="button" data-nav="dashboard">
+        <span class="material-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button class="bottom-nav-item" type="button" data-nav="projects">
+        <span class="material-icon">📁</span>
+        <span class="nav-label">Project</span>
+      </button>
+    </nav>
+
+    <!-- ===================== OVERLAY (backdrop untuk bottom sheet) ===================== -->
+    <div id="sheet-overlay" class="sheet-overlay" hidden></div>
+
+    <!-- ===================== BOTTOM SHEET: TAMBAH PROJECT ===================== -->
+    <div id="sheet-add-project" class="bottom-sheet" hidden>
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h3>Tambah Project Baru</h3>
+        <button class="icon-btn sheet-close" type="button" data-close-sheet="sheet-add-project" aria-label="Tutup">
+          <span class="material-icon">✕</span>
+        </button>
+      </div>
+
+      <form id="form-add-project" class="sheet-body">
+        <div class="form-group">
+          <label class="form-label" for="input-project-name">Nama Project *</label>
+          <input id="input-project-name" class="form-input" type="text" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-project-address">📍 Lokasi *</label>
+          <input id="input-project-address" class="form-input" type="text" placeholder="Contoh: Jl. Raya Soreang No. 45, Bandung" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Jenis Produk * (pilih min. 1)</label>
+          <div id="product-type-chips" class="chip-group wrap">
+            <button class="chip" type="button" data-product="Kusen Aluminium">Kusen</button>
+            <button class="chip" type="button" data-product="Pintu Aluminium">Pintu</button>
+            <button class="chip" type="button" data-product="Jendela Aluminium">Jendela</button>
+            <button class="chip" type="button" data-product="Curtain Wall">Curtain Wall</button>
+            <button class="chip" type="button" data-product="Railing">Railing</button>
+            <button class="chip" type="button" data-product="ACP">ACP</button>
+            <button class="chip" type="button" data-product="Facade">Facade</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-project-category">Jenis Project</label>
+          <select id="select-project-category" class="form-select">
+            <option value="">Pilih (opsional)</option>
+            <option value="Rumah">Rumah</option>
+            <option value="Ruko">Ruko</option>
+            <option value="Apartemen">Apartemen</option>
+            <option value="Gedung Komersial">Gedung Komersial</option>
+            <option value="Pabrik">Pabrik</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-construction-stage">Tahap Konstruksi</label>
+          <select id="select-construction-stage" class="form-select">
+            <option value="">Pilih (opsional)</option>
+            <option value="Pondasi">Pondasi</option>
+            <option value="Dinding">Dinding</option>
+            <option value="Finishing">Finishing</option>
+          </select>
+        </div>
+
+        <button type="submit" class="primary-button full-width">SIMPAN PROJECT</button>
+      </form>
+    </div>
+
+    <!-- ===================== BOTTOM SHEET: UPDATE PROGRESS ===================== -->
+    <div id="sheet-update-progress" class="bottom-sheet" hidden>
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div>
+          <h3 id="update-progress-project-name">Update Aktivitas</h3>
+        </div>
+        <button class="icon-btn sheet-close" type="button" data-close-sheet="sheet-update-progress" aria-label="Tutup">
+          <span class="material-icon">✕</span>
+        </button>
+      </div>
+
+      <form id="form-update-progress" class="sheet-body">
+
+        <div class="form-group">
+          <label class="form-label">Jenis Aktivitas *</label>
+          <div id="activity-type-grid" class="activity-type-grid">
+            <button class="activity-type-btn" type="button" data-activity-type="Visit">
+              <span class="material-icon">📍</span>
+              <span>Visit</span>
+            </button>
+            <button class="activity-type-btn" type="button" data-activity-type="Follow Up">
+              <span class="material-icon">📞</span>
+              <span>Follow Up</span>
+            </button>
+            <button class="activity-type-btn" type="button" data-activity-type="Kirim Penawaran">
+              <span class="material-icon">📄</span>
+              <span>Kirim Tawaran</span>
+            </button>
+            <button class="activity-type-btn" type="button" data-activity-type="Deal Update">
+              <span class="material-icon">🤝</span>
+              <span>Deal</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">📷 Foto Kunjungan *</label>
+          <input id="input-photo" type="file" accept="image/*" capture="environment" hidden />
+          <button id="btn-take-photo" class="secondary-button full-width" type="button">Ambil Foto</button>
+          <img id="photo-preview" class="photo-preview" hidden alt="Preview foto kunjungan" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-activity-note">Catatan *</label>
+          <textarea id="input-activity-note" class="form-textarea" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-pipeline-stage">Status Project Saat Ini *</label>
+          <select id="select-pipeline-stage" class="form-select" required>
+            <option value="New Visit">New Visit</option>
+            <option value="Qualified">Qualified</option>
+            <option value="Quotation Sent">Quotation Sent</option>
+            <option value="Negotiation">Negotiation</option>
+            <option value="Won">Won</option>
+            <option value="Lost">Lost</option>
+          </select>
+        </div>
+
+        <div id="lost-reason-group" class="form-group" hidden>
+          <label class="form-label">⚠ Alasan Lost *</label>
+          <div id="lost-reason-chips" class="chip-group wrap">
+            <button class="chip" type="button" data-lost-reason="Kalah Harga">Kalah Harga</button>
+            <button class="chip" type="button" data-lost-reason="Kalah Kompetitor">Kalah Kompetitor</button>
+            <button class="chip" type="button" data-lost-reason="Proyek Batal">Proyek Batal</button>
+            <button class="chip" type="button" data-lost-reason="Spek Tidak Cocok">Spek Tidak Cocok</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Follow Up Berikutnya *</label>
+          <div id="followup-quick-chips" class="chip-group wrap">
+            <button class="chip" type="button" data-followup-days="1">Besok</button>
+            <button class="chip" type="button" data-followup-days="3">3 Hari</button>
+            <button class="chip" type="button" data-followup-days="7">1 Minggu</button>
+          </div>
+          <input id="input-followup-date" class="form-input" type="date" />
+        </div>
+
+        <button type="submit" class="primary-button full-width">SIMPAN</button>
+      </form>
+    </div>
+
+    <!-- ===================== BOTTOM SHEET: FILTER ===================== -->
+    <div id="sheet-filter" class="bottom-sheet" hidden>
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h3>Filter</h3>
+        <button class="icon-btn sheet-close" type="button" data-close-sheet="sheet-filter" aria-label="Tutup">
+          <span class="material-icon">✕</span>
+        </button>
+      </div>
+
+      <div class="sheet-body">
+        <div class="form-group">
+          <label class="form-label">Pipeline Stage</label>
+          <div id="filter-stage-chips" class="chip-group wrap">
+            <button class="chip selected" type="button" data-filter-stage="">Semua</button>
+            <button class="chip" type="button" data-filter-stage="New Visit">New Visit</button>
+            <button class="chip" type="button" data-filter-stage="Qualified">Qualified</button>
+            <button class="chip" type="button" data-filter-stage="Quotation Sent">Quotation</button>
+            <button class="chip" type="button" data-filter-stage="Negotiation">Negotiation</button>
+            <button class="chip" type="button" data-filter-stage="Won">Won</button>
+            <button class="chip" type="button" data-filter-stage="Lost">Lost</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Jenis Produk</label>
+          <div id="filter-product-chips" class="chip-group wrap">
+            <button class="chip selected" type="button" data-filter-product="">Semua</button>
+            <button class="chip" type="button" data-filter-product="Kusen Aluminium">Kusen</button>
+            <button class="chip" type="button" data-filter-product="Jendela Aluminium">Jendela</button>
+            <button class="chip" type="button" data-filter-product="Curtain Wall">Curtain Wall</button>
+          </div>
+        </div>
+
+        <div class="sheet-action-row">
+          <button id="btn-filter-reset" class="secondary-button" type="button">RESET</button>
+          <button id="btn-filter-apply" class="primary-button" type="button">TERAPKAN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SNACKBAR ===================== -->
+    <div id="snackbar" class="snackbar" role="status" aria-live="polite"></div>
+
+  </div>
+
+  <!-- Konfigurasi identitas sales dimuat SEBELUM script.js -->
+  <script src="./config.js"></script>
+  <script src="./script.js"></script>
+</body>
+</html>
