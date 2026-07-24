@@ -44,6 +44,11 @@
       📴 Tidak ada koneksi internet — data akan tersimpan lokal dan otomatis dikirim saat online
     </div>
 
+    <!-- ===================== PENDING SYNC BANNER ===================== -->
+    <button id="pending-sync-banner" class="pending-sync-banner" type="button" hidden>
+      📤 <span id="pending-sync-count">0</span> data menunggu dikirim — Tap untuk sync sekarang
+    </button>
+
     <!-- ===================== MAIN CONTENT AREA ===================== -->
     <main id="view-container" class="view-container">
 
@@ -246,10 +251,10 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">📷 Foto Kunjungan *</label>
+          <label class="form-label">📷 Foto Kunjungan (opsional, boleh lebih dari 1)</label>
           <input id="input-photo" type="file" accept="image/*" capture="environment" hidden />
           <button id="btn-take-photo" class="secondary-button full-width" type="button">Ambil Foto</button>
-          <img id="photo-preview" class="photo-preview" hidden alt="Preview foto kunjungan" />
+          <div id="photo-thumbnail-list" class="photo-thumbnail-list"></div>
         </div>
 
         <div class="form-group">
