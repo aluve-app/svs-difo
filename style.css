@@ -331,12 +331,23 @@ h1, h2, h3, p { margin: 0; }
 .card-sub {
   font-size: 13px;
   color: var(--color-text-secondary);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .card-sub-light {
   font-size: 12px;
   color: var(--color-text-secondary);
   margin-top: 2px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.loading-text {
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  padding: var(--space-lg) 0;
 }
 
 .card-row {
@@ -735,6 +746,8 @@ h1, h2, h3, p { margin: 0; }
 .timeline-note {
   font-size: 14px;
   margin-top: 4px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .timeline-photo {
   width: 100%;
