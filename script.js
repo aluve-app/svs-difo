@@ -90,6 +90,20 @@ const IdGen = {
 };
 
 /* ============================================================
+   1b. ICONS (SVG kecil untuk konten yang di-render JS — supaya
+   konsisten dengan chrome utama, bukan emoji yang beda-beda per HP)
+   ============================================================ */
+const Icons = {
+  pin: '<svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  tag: '<svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+  folder: '<svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+  user: '<svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  phone: '<svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+  message: '<svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
+  arrowRight: '<svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>'
+};
+
+/* ============================================================
    2. UTILS
    ============================================================ */
 const Utils = {
@@ -287,7 +301,7 @@ const OfflineQueue = {
       this.saveAll(remaining);
 
       if (successCount > 0) {
-        Snackbar.show(successCount + ' data tertunda berhasil disinkronkan');
+        Snackbar.show(successCount + ' data tertunda berhasil disinkronkan', 'success');
         Router.refreshCurrentView();
       }
     } finally {
@@ -384,10 +398,16 @@ const Snackbar = {
    * Menampilkan snackbar yang otomatis hilang setelah `duration` (default 2.5 detik).
    * Dipakai untuk pesan hasil akhir (sukses/gagal).
    */
-  show(message, duration) {
+  /**
+   * Menampilkan snackbar yang otomatis hilang setelah `duration` (default 2.5 detik).
+   * @param {string} message
+   * @param {string} [type] - 'success' | 'error' | 'info' (default 'info')
+   * @param {number} [duration]
+   */
+  show(message, type, duration) {
     if (!this.el) return;
     this.el.textContent = message;
-    this.el.classList.add('show');
+    this.el.className = 'snackbar show snackbar-' + (type || 'info');
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {
       this.el.classList.remove('show');
@@ -397,15 +417,13 @@ const Snackbar = {
   /**
    * Menampilkan snackbar dengan ikon loading berputar, yang TIDAK otomatis
    * hilang — tetap tampil sampai dipanggil show()/showPersistent() lain
-   * (biasanya dengan pesan hasil akhir). Dipakai selama proses yang
-   * memakan waktu (upload foto, simpan aktivitas, sync) supaya sales tahu
-   * prosesnya masih berjalan, bukan diam-diam menghilang di tengah proses.
+   * (biasanya dengan pesan hasil akhir).
    */
   showPersistent(message) {
     if (!this.el) return;
     clearTimeout(this.timer);
+    this.el.className = 'snackbar show snackbar-info';
     this.el.innerHTML = '<span class="snackbar-spinner"></span>' + message;
-    this.el.classList.add('show');
   }
 };
 
@@ -468,8 +486,9 @@ const ThemeToggle = {
   },
 
   updateIcon() {
-    const icon = document.getElementById('theme-icon');
-    icon.textContent = this.isDark() ? '☀️' : '🌙';
+    const isDark = this.isDark();
+    document.getElementById('theme-icon-moon').hidden = isDark;
+    document.getElementById('theme-icon-sun').hidden = !isDark;
   }
 };
 
@@ -482,7 +501,7 @@ const DashboardView = {
     const result = await Api.call('readDashboard', payload, { noQueue: true }).catch(() => null);
 
     if (!result || !result.success) {
-      Snackbar.show('Gagal memuat dashboard. Menampilkan data terakhir yang tersimpan.');
+      Snackbar.show('Gagal memuat dashboard. Menampilkan data terakhir yang tersimpan.', 'error');
       return;
     }
 
@@ -523,10 +542,10 @@ const DashboardView = {
       const card = document.createElement('div');
       card.className = 'card followup-card ' + urgency;
       card.innerHTML =
-        '<h3 class="card-title">🏗 ' + item.project_name + '</h3>' +
+        '<h3 class="card-title">' + Icons.folder + ' ' + item.project_name + '</h3>' +
         '<p class="card-sub">' + label + '</p>' +
         '<div class="followup-card-action" data-open-activity="' + item.project_id + '" data-project-name="' + item.project_name + '">' +
-        '<span class="material-icon">arrow_forward</span> Catat Aktivitas</div>';
+        'Catat Aktivitas ' + Icons.arrowRight + '</div>';
       container.appendChild(card);
     });
 
@@ -569,7 +588,7 @@ const ProjectListView = {
 
     const result = await Api.call('filterProject', payload, { noQueue: true }).catch(() => null);
     if (!result || !result.success) {
-      Snackbar.show('Gagal memuat daftar project');
+      Snackbar.show('Gagal memuat daftar project', 'error');
       return;
     }
 
@@ -656,8 +675,8 @@ const ProjectListView = {
       card.innerHTML =
         '<h3 class="card-title"><span class="dot ' + dotClass + '"></span>' + p.Project_Name + '</h3>' +
         '<p class="card-sub">' + p.Pipeline_Stage + ' · ' + valueText + '</p>' +
-        '<p class="card-sub-light">📍 ' + (p.Location_Address || '-') + '</p>' +
-        '<p class="card-sub-light">🔧 ' + (p.Product_Type || '-') + '</p>' +
+        '<p class="card-sub-light">' + Icons.pin + ' ' + (p.Location_Address || '-') + '</p>' +
+        '<p class="card-sub-light">' + Icons.tag + ' ' + (p.Product_Type || '-') + '</p>' +
         pendingBadge;
       container.appendChild(card);
     });
@@ -720,9 +739,9 @@ const TimelineView = {
       const waNumber = digits.startsWith('0') ? '62' + digits.slice(1) : digits;
       return (
         '<div class="contact-item">' +
-        '👤 ' + c.Contact_Name + ' (' + c.Role + ')<br>' +
-        '<a href="tel:' + digits + '" class="contact-link">📞 Telpon</a> ' +
-        '<a href="https://wa.me/' + waNumber + '" target="_blank" rel="noopener" class="contact-link">💬 WhatsApp</a>' +
+        '<div class="contact-name-row">' + Icons.user + ' ' + c.Contact_Name + ' (' + c.Role + ')</div>' +
+        '<a href="tel:' + digits + '" class="contact-link">' + Icons.phone + ' Telpon</a> ' +
+        '<a href="https://wa.me/' + waNumber + '" target="_blank" rel="noopener" class="contact-link">' + Icons.message + ' WhatsApp</a>' +
         '</div>'
       );
     }).join('');
@@ -733,7 +752,7 @@ const TimelineView = {
     LoadingIndicator.stop();
 
     if (!result || !result.success) {
-      Snackbar.show('Gagal memuat riwayat aktivitas');
+      Snackbar.show('Gagal memuat riwayat aktivitas', 'error');
       document.getElementById('timeline-list').innerHTML = '<p class="empty-state">Gagal memuat data. Coba lagi.</p>';
       return;
     }
@@ -821,11 +840,11 @@ const AddProjectSheet = {
     const address = document.getElementById('input-project-address').value.trim();
 
     if (!name || !address) {
-      Snackbar.show('Nama project dan lokasi wajib diisi');
+      Snackbar.show('Nama project dan lokasi wajib diisi', 'error');
       return;
     }
     if (State.selectedProductTypes.length === 0) {
-      Snackbar.show('Pilih minimal 1 jenis produk');
+      Snackbar.show('Pilih minimal 1 jenis produk', 'error');
       return;
     }
 
@@ -865,7 +884,7 @@ const AddProjectSheet = {
 
     Api.call('createProject', payload).then((result) => {
       if (!result.success && !result.queued) {
-        Snackbar.show(result.message || 'Gagal menyimpan project ke server');
+        Snackbar.show(result.message || 'Gagal menyimpan project ke server', 'error');
       }
       // Kalau berhasil ATAU sudah masuk antrian offline, tidak perlu
       // notifikasi tambahan — sales sudah lihat project-nya sejak tadi.
@@ -886,11 +905,11 @@ const AddProjectSheet = {
         role: contactRole
       }).then((result) => {
         if (!result.success && !result.queued) {
-          Snackbar.show('Gagal menyimpan info kontak: ' + (result.message || ''));
+          Snackbar.show('Gagal menyimpan info kontak: ' + (result.message || ''), 'error');
         }
       });
     } else if (contactName || contactPhone || contactRole) {
-      Snackbar.show('Info kontak tidak disimpan — Nama, Telepon, dan Role harus diisi semua kalau ingin mencatat kontak');
+      Snackbar.show('Info kontak tidak disimpan — Nama, Telepon, dan Role harus diisi semua kalau ingin mencatat kontak', 'info');
     }
   }
 };
@@ -927,7 +946,7 @@ const UpdateProgressSheet = {
           const { base64, mimeType, previewUrl } = await Utils.compressAndReadImage(file);
           State.pendingPhotos.push({ base64, mimeType, previewUrl });
         } catch (err) {
-          Snackbar.show('Gagal memproses salah satu foto, dilewati');
+          Snackbar.show('Gagal memproses salah satu foto, dilewati', 'error');
         }
       }
       this.renderPhotoThumbnails();
@@ -1029,19 +1048,19 @@ const UpdateProgressSheet = {
     const followupDate = document.getElementById('input-followup-date').value || State.selectedFollowupDate;
 
     if (!State.selectedActivityType) {
-      Snackbar.show('Pilih jenis aktivitas terlebih dahulu');
+      Snackbar.show('Pilih jenis aktivitas terlebih dahulu', 'error');
       return;
     }
     if (!note) {
-      Snackbar.show('Catatan wajib diisi');
+      Snackbar.show('Catatan wajib diisi', 'error');
       return;
     }
     if (!followupDate) {
-      Snackbar.show('Pilih tanggal follow up berikutnya');
+      Snackbar.show('Pilih tanggal follow up berikutnya', 'error');
       return;
     }
     if (stage === 'Lost' && !State.selectedLostReason) {
-      Snackbar.show('Pilih alasan Lost terlebih dahulu');
+      Snackbar.show('Pilih alasan Lost terlebih dahulu', 'error');
       return;
     }
     // Catatan: foto SENGAJA tidak divalidasi wajib di sini — foto bersifat
@@ -1088,11 +1107,11 @@ const UpdateProgressSheet = {
       const activityResult = await Api.rawCall('createActivity', activityPayload);
 
       if (!activityResult.success) {
-        Snackbar.show(activityResult.message || 'Gagal menyimpan aktivitas');
+        Snackbar.show(activityResult.message || 'Gagal menyimpan aktivitas', 'error');
         return;
       }
 
-      Snackbar.show('Aktivitas tersimpan');
+      Snackbar.show('Aktivitas tersimpan', 'success');
       Router.refreshCurrentView();
     } catch (networkError) {
       // Jaringan gagal/lambat (timeout) di salah satu tahap manapun —
@@ -1101,7 +1120,7 @@ const UpdateProgressSheet = {
       // supaya saat sync belakangan tidak ada foto yang "nyasar" tanpa
       // aktivitas, dan tidak ada data dobel walau diulang berkali-kali.
       OfflineQueue.addActivityWithPhotos(activityPayload, photoAssignments);
-      Snackbar.show('Tersimpan lokal (' + (photoAssignments.length + 1) + ' data) — akan dikirim otomatis saat online');
+      Snackbar.show('Tersimpan lokal (' + (photoAssignments.length + 1) + ' data) — akan dikirim otomatis saat online', 'info');
       Router.refreshCurrentView();
     }
   }
