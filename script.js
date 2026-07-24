@@ -435,7 +435,9 @@ const ProjectListView = {
       card.setAttribute('data-project-stage', p.Pipeline_Stage);
       card.innerHTML =
         '<h3 class="card-title"><span class="dot ' + dotClass + '"></span>' + p.Project_Name + '</h3>' +
-        '<p class="card-sub">' + p.Pipeline_Stage + ' · ' + valueText + '</p>';
+        '<p class="card-sub">' + p.Pipeline_Stage + ' · ' + valueText + '</p>' +
+        '<p class="card-sub-light">📍 ' + (p.Location_Address || '-') + '</p>' +
+        '<p class="card-sub-light">🔧 ' + (p.Product_Type || '-') + '</p>';
       container.appendChild(card);
     });
 
@@ -499,6 +501,9 @@ const TimelineView = {
       item.innerHTML =
         '<p class="timeline-date">' + Utils.formatShortDate(a.Timestamp) + ' · ' + a.Activity_Type + '</p>' +
         '<p class="timeline-note">' + a.Activity_Note + '</p>' +
+        '<p class="card-sub-light">Status saat itu: ' + a.Pipeline_Stage_At_This_Point +
+        (a.Next_Followup_Date ? ' · Follow up berikutnya: ' + Utils.formatShortDate(a.Next_Followup_Date) : '') +
+        '</p>' +
         photosHtml;
 
       container.appendChild(item);
