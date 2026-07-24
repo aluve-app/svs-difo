@@ -46,6 +46,9 @@ const State = {
   filterProduct: '',
   searchKeyword: '',
 
+  summaryData: { today: {}, week: {}, month: {} },
+  selectedSummaryPeriod: 'today',
+
   projectsCache: []
 };
 
@@ -297,8 +300,20 @@ const DashboardView = {
     }
 
     this.renderFollowUps(result.data.needs_followup || []);
-    this.renderSummary(result.data.summary || {});
+    State.summaryData = result.data.summary || { today: {}, week: {}, month: {} };
+    this.renderSummary(State.selectedSummaryPeriod);
     this.updateNotificationBadge(result.data.needs_followup || []);
+  },
+
+  init() {
+    document.querySelectorAll('#summary-period-chips .chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#summary-period-chips .chip').forEach((c) => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        State.selectedSummaryPeriod = chip.dataset.period;
+        this.renderSummary(State.selectedSummaryPeriod);
+      });
+    });
   },
 
   renderFollowUps(items) {
@@ -336,7 +351,8 @@ const DashboardView = {
     });
   },
 
-  renderSummary(summary) {
+  renderSummary(period) {
+    const summary = State.summaryData[period] || {};
     document.getElementById('summary-visit').textContent = summary.visit_count || 0;
     document.getElementById('summary-won').textContent = summary.won_count || 0;
     document.getElementById('summary-lost').textContent = summary.lost_count || 0;
@@ -860,12 +876,18 @@ function initApp() {
   ThemeToggle.init();
   Router.init();
   SheetManager.init();
+  DashboardView.init();
   AddProjectSheet.init();
   UpdateProgressSheet.init();
   FilterSheet.init();
 
   document.getElementById('header-title').textContent =
     'Halo, ' + SVS_CONFIG.SALES_NAME.split(' ')[0] + ' 👋';
+
+  // Sembunyikan logo header otomatis kalau file assets/icons/logo.png
+  // belum di-upload (mencegah tampilan "gambar rusak" muncul di header)
+  const headerLogo = document.getElementById('header-logo');
+  headerLogo.addEventListener('error', () => { headerLogo.style.display = 'none'; });
 
   // Muat data awal Dashboard
   DashboardView.load();
