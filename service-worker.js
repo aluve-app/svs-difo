@@ -15,14 +15,19 @@
  * ============================================================
  */
 
-const CACHE_NAME = 'svs-cache-v1';
+const CACHE_NAME = 'svs-cache-v2';
 
+// PENTING: config.js SENGAJA TIDAK dimasukkan ke daftar precache ini.
+// File itu berisi identitas sales yang wajar diedit sewaktu-waktu tanpa
+// mengubah kode lain — kalau ikut di-cache-first, perubahan config.js
+// di server tidak akan pernah terlihat sampai versi cache dinaikkan
+// manual. Strategi khusus untuk config.js diatur terpisah di bagian
+// fetch handler di bawah (selalu coba jaringan dulu / network-first).
 const APP_SHELL_FILES = [
   './',
   './index.html',
   './style.css',
   './script.js',
-  './config.js',
   './manifest.json'
 ];
 
@@ -71,6 +76,24 @@ self.addEventListener('fetch', (event) => {
 
   const requestUrl = new URL(request.url);
   if (requestUrl.origin !== self.location.origin) return;
+
+  // Khusus config.js: NETWORK-FIRST, bukan cache-first.
+  // Selalu coba ambil versi terbaru dari server dulu — file ini berisi
+  // identitas sales yang bisa berubah kapan saja tanpa deploy ulang
+  // service worker. Cache hanya dipakai sebagai fallback saat benar-benar
+  // tidak ada koneksi sama sekali.
+  if (requestUrl.pathname.endsWith('config.js')) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          return networkResponse;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
