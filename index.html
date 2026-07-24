@@ -8,10 +8,10 @@
 
   <title>SVS - Sales Visit System</title>
 
-  <!-- PWA manifest -->
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="SVS" />
 
@@ -24,16 +24,17 @@
     <!-- ===================== TOP APP BAR ===================== -->
     <header class="app-header">
       <button id="btn-back" class="icon-btn" type="button" aria-label="Kembali" hidden>
-        <span class="material-icon">⬅️</span>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
       </button>
       <img id="header-logo" class="header-logo" src="./assets/icons/logo.png" alt="Aluve" />
       <h1 id="header-title" class="header-title">Halo 👋</h1>
       <div class="header-actions">
-        <button id="btn-theme-toggle" class="icon-btn" type="button" aria-label="Ganti tema">
-          <span class="material-icon" id="theme-icon">🌙</span>
+        <button id="btn-theme-toggle" class="icon-btn icon-btn-subtle" type="button" aria-label="Ganti tema">
+          <svg class="icon" id="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="icon" id="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         </button>
         <button id="btn-notification" class="icon-btn" type="button" aria-label="Notifikasi">
-          <span class="material-icon">🔔</span>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span id="badge-notification-count" class="badge" hidden>0</span>
         </button>
       </div>
@@ -46,7 +47,8 @@
 
     <!-- ===================== PENDING SYNC BANNER ===================== -->
     <button id="pending-sync-banner" class="pending-sync-banner" type="button" hidden>
-      📤 <span id="pending-sync-count">0</span> data menunggu dikirim — Tap untuk sync sekarang
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16l-4-4-4 4"/><path d="M12 12v9"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+      <span id="pending-sync-count">0</span> data menunggu dikirim — Tap untuk sync sekarang
     </button>
 
     <!-- ===================== MAIN CONTENT AREA ===================== -->
@@ -56,15 +58,19 @@
       <section id="view-dashboard" class="view active" data-view="dashboard">
 
         <div class="section-block">
-          <h2 class="section-title">📋 Perlu Follow Up Hari Ini</h2>
-          <div id="followup-list" class="card-list">
-            <!-- diisi oleh script.js -->
-          </div>
+          <h2 class="section-title">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+            Perlu Follow Up Hari Ini
+          </h2>
+          <div id="followup-list" class="card-list"></div>
           <p id="followup-empty" class="empty-state" hidden>Tidak ada follow up yang jatuh tempo. Kerja bagus! 🎉</p>
         </div>
 
         <div class="section-block">
-          <h2 class="section-title">📊 Ringkasan Saya</h2>
+          <h2 class="section-title">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Ringkasan Saya
+          </h2>
           <div id="summary-period-chips" class="chip-group">
             <button class="chip selected" type="button" data-period="today">Hari Ini</button>
             <button class="chip" type="button" data-period="week">Minggu Ini</button>
@@ -92,7 +98,7 @@
       <section id="view-projects" class="view" data-view="projects">
 
         <div class="search-bar">
-          <span class="material-icon">🔍</span>
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input id="input-search-project" type="text" placeholder="Cari nama project atau lokasi..." />
           <button id="btn-open-filter" class="icon-btn" type="button" aria-label="Filter">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -113,9 +119,7 @@
           <button class="chip" type="button" data-quickfilter="Lost">Lost</button>
         </div>
 
-        <div id="project-list" class="card-list">
-          <!-- diisi oleh script.js -->
-        </div>
+        <div id="project-list" class="card-list"></div>
         <p id="project-list-empty" class="empty-state" hidden>Belum ada project. Tap tombol + untuk menambahkan.</p>
 
       </section>
@@ -130,9 +134,7 @@
           <div id="timeline-project-contacts" class="contact-list"></div>
         </div>
 
-        <div id="timeline-list" class="timeline">
-          <!-- diisi oleh script.js -->
-        </div>
+        <div id="timeline-list" class="timeline"></div>
 
         <button id="btn-add-activity-from-timeline" class="primary-button full-width sticky-bottom" type="button">
           + Catat Aktivitas Baru
@@ -144,22 +146,22 @@
 
     <!-- ===================== FAB ===================== -->
     <button id="fab-add-project" class="fab" type="button" aria-label="Tambah Project">
-      <span class="material-icon">➕</span>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
 
     <!-- ===================== BOTTOM NAVIGATION ===================== -->
     <nav class="bottom-nav">
       <button class="bottom-nav-item active" type="button" data-nav="dashboard">
-        <span class="material-icon">🏠</span>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span class="nav-label">Home</span>
       </button>
       <button class="bottom-nav-item" type="button" data-nav="projects">
-        <span class="material-icon">📁</span>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
         <span class="nav-label">Project</span>
       </button>
     </nav>
 
-    <!-- ===================== OVERLAY (backdrop untuk bottom sheet) ===================== -->
+    <!-- ===================== OVERLAY ===================== -->
     <div id="sheet-overlay" class="sheet-overlay" hidden></div>
 
     <!-- ===================== BOTTOM SHEET: TAMBAH PROJECT ===================== -->
@@ -168,7 +170,7 @@
       <div class="sheet-header">
         <h3>Tambah Project Baru</h3>
         <button class="icon-btn sheet-close" type="button" data-close-sheet="sheet-add-project" aria-label="Tutup">
-          <span class="material-icon">✕</span>
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -179,7 +181,7 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="input-project-address">📍 Lokasi *</label>
+          <label class="form-label" for="input-project-address">Lokasi *</label>
           <input id="input-project-address" class="form-input" type="text" placeholder="Contoh: Jl. Raya Soreang No. 45, Bandung" required />
         </div>
 
@@ -219,14 +221,12 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">👤 Info Kontak di Lokasi (opsional)</label>
+          <label class="form-label">Info Kontak di Lokasi (opsional)</label>
           <input id="input-contact-name" class="form-input" type="text" placeholder="Nama kontak" />
         </div>
-
         <div class="form-group">
           <input id="input-contact-phone" class="form-input" type="tel" placeholder="No. Telepon/WA" />
         </div>
-
         <div class="form-group">
           <select id="select-contact-role" class="form-select">
             <option value="">Role Kontak (opsional)</option>
@@ -249,11 +249,9 @@
     <div id="sheet-update-progress" class="bottom-sheet" hidden>
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <div>
-          <h3 id="update-progress-project-name">Update Aktivitas</h3>
-        </div>
+        <div><h3 id="update-progress-project-name">Update Aktivitas</h3></div>
         <button class="icon-btn sheet-close" type="button" data-close-sheet="sheet-update-progress" aria-label="Tutup">
-          <span class="material-icon">✕</span>
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -263,31 +261,37 @@
           <label class="form-label">Jenis Aktivitas *</label>
           <div id="activity-type-grid" class="activity-type-grid">
             <button class="activity-type-btn" type="button" data-activity-type="Visit">
-              <span class="material-icon">📍</span>
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               <span>Visit</span>
             </button>
             <button class="activity-type-btn" type="button" data-activity-type="Follow Up">
-              <span class="material-icon">📞</span>
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
               <span>Follow Up</span>
             </button>
             <button class="activity-type-btn" type="button" data-activity-type="Kirim Penawaran">
-              <span class="material-icon">📄</span>
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               <span>Kirim Tawaran</span>
             </button>
             <button class="activity-type-btn" type="button" data-activity-type="Deal Update">
-              <span class="material-icon">🤝</span>
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
               <span>Deal</span>
             </button>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">📷 Foto Kunjungan (opsional, boleh lebih dari 1)</label>
+          <label class="form-label">Foto Kunjungan (opsional, boleh lebih dari 1)</label>
           <input id="input-photo" type="file" accept="image/*" capture="environment" hidden />
           <input id="input-gallery" type="file" accept="image/*" multiple hidden />
           <div class="photo-source-buttons">
-            <button id="btn-take-photo" class="secondary-button" type="button">📷 Ambil Foto</button>
-            <button id="btn-pick-gallery" class="secondary-button" type="button">🖼️ Pilih dari Galeri</button>
+            <button id="btn-take-photo" class="secondary-button" type="button">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Ambil Foto
+            </button>
+            <button id="btn-pick-gallery" class="secondary-button" type="button">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Galeri
+            </button>
           </div>
           <div id="photo-thumbnail-list" class="photo-thumbnail-list"></div>
         </div>
@@ -310,7 +314,10 @@
         </div>
 
         <div id="lost-reason-group" class="form-group" hidden>
-          <label class="form-label">⚠ Alasan Lost *</label>
+          <label class="form-label">
+            <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Alasan Lost *
+          </label>
           <div id="lost-reason-chips" class="chip-group wrap">
             <button class="chip" type="button" data-lost-reason="Kalah Harga">Kalah Harga</button>
             <button class="chip" type="button" data-lost-reason="Kalah Kompetitor">Kalah Kompetitor</button>
@@ -339,7 +346,7 @@
       <div class="sheet-header">
         <h3>Filter</h3>
         <button class="icon-btn sheet-close" type="button" data-close-sheet="sheet-filter" aria-label="Tutup">
-          <span class="material-icon">✕</span>
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -379,7 +386,6 @@
 
   </div>
 
-  <!-- Konfigurasi identitas sales dimuat SEBELUM script.js -->
   <script src="./config.js"></script>
   <script src="./script.js"></script>
 </body>
