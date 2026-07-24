@@ -346,6 +346,17 @@ h1, h2, h3, p { margin: 0; }
   margin-top: var(--space-sm);
 }
 
+.pending-badge {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-warning);
+  color: #1F2937;
+  font-size: 11px;
+  font-weight: 500;
+}
+
 /* Follow-up card variant (border kiri berwarna sesuai urgensi) */
 .followup-card {
   border-left: 4px solid var(--color-success);
