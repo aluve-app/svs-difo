@@ -95,7 +95,14 @@
           <span class="material-icon">🔍</span>
           <input id="input-search-project" type="text" placeholder="Cari nama project atau lokasi..." />
           <button id="btn-open-filter" class="icon-btn" type="button" aria-label="Filter">
-            <span class="material-icon">🔧</span>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <circle cx="15" cy="6" r="2.2" fill="currentColor" stroke="none"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <circle cx="9" cy="12" r="2.2" fill="currentColor" stroke="none"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+              <circle cx="13" cy="18" r="2.2" fill="currentColor" stroke="none"/>
+            </svg>
           </button>
         </div>
 
@@ -207,6 +214,29 @@
             <option value="Pondasi">Pondasi</option>
             <option value="Dinding">Dinding</option>
             <option value="Finishing">Finishing</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">👤 Info Kontak di Lokasi (opsional)</label>
+          <input id="input-contact-name" class="form-input" type="text" placeholder="Nama kontak" />
+        </div>
+
+        <div class="form-group">
+          <input id="input-contact-phone" class="form-input" type="tel" placeholder="No. Telepon/WA" />
+        </div>
+
+        <div class="form-group">
+          <select id="select-contact-role" class="form-select">
+            <option value="">Role Kontak (opsional)</option>
+            <option value="Owner">Owner</option>
+            <option value="Developer">Developer</option>
+            <option value="Kontraktor">Kontraktor</option>
+            <option value="Konsultan">Konsultan</option>
+            <option value="Arsitek">Arsitek</option>
+            <option value="Mandor">Mandor</option>
+            <option value="Project Manager">Project Manager</option>
+            <option value="Purchasing">Purchasing</option>
           </select>
         </div>
 
