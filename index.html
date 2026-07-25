@@ -83,15 +83,15 @@
             <button class="chip" type="button" data-period="month">Bulan Ini</button>
           </div>
           <div class="summary-grid">
-            <div class="summary-item">
+            <div class="summary-item" data-summary-type="visit" role="button" tabindex="0">
               <span id="summary-visit" class="summary-number">0</span>
               <span class="summary-label">Kunjungan</span>
             </div>
-            <div class="summary-item">
+            <div class="summary-item" data-summary-type="won" role="button" tabindex="0">
               <span id="summary-won" class="summary-number">0</span>
               <span class="summary-label">Deal Ditutup</span>
             </div>
-            <div class="summary-item">
+            <div class="summary-item" data-summary-type="lost" role="button" tabindex="0">
               <span id="summary-lost" class="summary-number">0</span>
               <span class="summary-label">Deal Hilang</span>
             </div>
@@ -389,6 +389,20 @@
           <button id="btn-filter-reset" class="secondary-button ripple" type="button">RESET</button>
           <button id="btn-filter-apply" class="primary-button ripple" type="button">TERAPKAN</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ===================== BOTTOM SHEET: DETAIL RINGKASAN ===================== -->
+    <div id="sheet-summary-detail" class="bottom-sheet" hidden>
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h3 id="summary-detail-title">Detail</h3>
+        <button class="icon-btn sheet-close" type="button" data-close-sheet="sheet-summary-detail" aria-label="Tutup">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="sheet-body">
+        <div id="summary-detail-list" class="card-list"></div>
       </div>
     </div>
 
