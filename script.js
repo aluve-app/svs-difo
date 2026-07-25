@@ -643,6 +643,7 @@ const ThemeToggle = {
     const isDark = this.isDark();
     document.getElementById('theme-icon-moon').hidden = isDark;
     document.getElementById('theme-icon-sun').hidden = !isDark;
+    document.getElementById('btn-theme-toggle').classList.toggle('is-dark', isDark);
   }
 };
 
