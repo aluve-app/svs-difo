@@ -49,7 +49,8 @@ const State = {
   summaryData: { today: {}, week: {}, month: {} },
   selectedSummaryPeriod: 'today',
 
-  projectsCache: []
+  projectsCache: [],
+  contactsSummary: {}
 };
 
 /* ============================================================
@@ -520,6 +521,47 @@ const DashboardView = {
         this.renderSummary(State.selectedSummaryPeriod);
       });
     });
+
+    // Klik salah satu angka ringkasan (Kunjungan/Deal Ditutup/Deal Hilang)
+    // untuk melihat rincian nama project yang menyusun angka itu.
+    document.querySelectorAll('.summary-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        this.openSummaryDetail(item.dataset.summaryType);
+      });
+    });
+  },
+
+  async openSummaryDetail(type) {
+    const titles = { visit: 'Kunjungan', won: 'Deal Ditutup', lost: 'Deal Hilang' };
+    const periodLabels = { today: 'Hari Ini', week: 'Minggu Ini', month: 'Bulan Ini' };
+    const period = State.selectedSummaryPeriod;
+
+    document.getElementById('summary-detail-title').textContent =
+      titles[type] + ' — ' + periodLabels[period];
+
+    const listEl = document.getElementById('summary-detail-list');
+    listEl.innerHTML = '<p class="loading-text">Memuat data</p>';
+    LoadingIndicator.start(listEl.querySelector('.loading-text'), 'Memuat data');
+
+    SheetManager.open('sheet-summary-detail');
+
+    const payload = { period, type };
+    if (SVS_CONFIG.ROLE !== 'manager') payload.sales_code = SVS_CONFIG.SALES_CODE;
+
+    const result = await Api.call('readSummaryDetail', payload, { noQueue: true }).catch(() => null);
+    LoadingIndicator.stop();
+
+    if (!result || !result.success || !result.data || result.data.length === 0) {
+      listEl.innerHTML = '<p class="empty-state">Belum ada data untuk periode ini.</p>';
+      return;
+    }
+
+    listEl.innerHTML = result.data.map((item) => {
+      return '<div class="card">' +
+        '<p class="card-title">' + item.project_name + '</p>' +
+        '<p class="card-sub-light">' + Utils.formatShortDate(item.timestamp) + '</p>' +
+        '</div>';
+    }).join('');
   },
 
   renderFollowUps(items) {
@@ -592,6 +634,13 @@ const ProjectListView = {
       return;
     }
 
+    // Ambil ringkasan kontak (nama+role) untuk semua project sekaligus,
+    // supaya kartu bisa tampilkan siapa kontak di lokasi tanpa 1 request
+    // terpisah per project. Kalau gagal, tidak fatal — kartu cukup tanpa
+    // info kontak.
+    const contactsResult = await Api.call('readContactsSummary', {}, { noQueue: true }).catch(() => null);
+    State.contactsSummary = (contactsResult && contactsResult.success) ? contactsResult.data : {};
+
     const serverProjects = result.data || [];
     const serverIds = new Set(serverProjects.map((p) => p.Project_ID));
 
@@ -613,13 +662,15 @@ const ProjectListView = {
         Estimated_Value: '',
         Health_Status: 'Aktif',
         Date_Created: new Date().toISOString(),
+        Date_Last_Activity: new Date().toISOString(),
         _pendingSync: true
       }));
 
-    // Urutkan project terbaru di paling atas (data dari sheet secara alami
-    // berurutan lama->baru sesuai baris, jadi perlu dibalik di sini)
+    // Urutkan berdasarkan AKTIVITAS TERAKHIR (bukan tanggal dibuat) —
+    // project yang baru saja di-update/follow up tampil paling atas,
+    // supaya sales langsung lihat project yang paling relevan sekarang.
     const projects = serverProjects.slice().sort((a, b) => {
-      return new Date(b.Date_Created) - new Date(a.Date_Created);
+      return new Date(b.Date_Last_Activity) - new Date(a.Date_Last_Activity);
     });
 
     State.projectsCache = pendingFromQueue.concat(projects);
@@ -666,6 +717,11 @@ const ProjectListView = {
         ? '<span class="pending-badge">⏳ Menunggu Sync</span>'
         : '';
 
+      const contact = State.contactsSummary[p.Project_ID];
+      const contactLine = contact
+        ? '<p class="card-sub-light">' + Icons.user + ' ' + contact.contact_name + ' (' + contact.role + ')</p>'
+        : '';
+
       const card = document.createElement('div');
       card.className = 'card';
       card.setAttribute('data-open-project', p.Project_ID);
@@ -676,7 +732,7 @@ const ProjectListView = {
         '<h3 class="card-title"><span class="dot ' + dotClass + '"></span>' + p.Project_Name + '</h3>' +
         '<p class="card-sub">' + p.Pipeline_Stage + ' · ' + valueText + '</p>' +
         '<p class="card-sub-light">' + Icons.pin + ' ' + (p.Location_Address || '-') + '</p>' +
-        '<p class="card-sub-light">' + Icons.tag + ' ' + (p.Product_Type || '-') + '</p>' +
+        contactLine +
         pendingBadge;
       container.appendChild(card);
     });
