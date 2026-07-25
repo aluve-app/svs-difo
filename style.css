@@ -1,9 +1,10 @@
 /* ============================================================
    STYLE.CSS — Sales Visit System
-   Premium Business Mobile App (arah Notion/Slack Mobile),
+   Premium Business Mobile App (arah Linear / Notion / Stripe Dashboard),
    tetap memakai identitas warna biru-oranye Aluve.
    ============================================================
    Struktur file ini:
+   0. Font Face (Inter, self-hosted untuk keandalan offline)
    1. Design Tokens (CSS Variables) — Light & Dark, dengan elevation
    2. Reset & Base
    3. Layout (App Shell, Header, Bottom Nav, FAB)
@@ -11,6 +12,40 @@
    5. Halaman spesifik (Dashboard, Project List, Timeline)
    6. Responsive (tablet/desktop)
    ============================================================ */
+
+/* ============================================================
+   0. FONT FACE — Inter, di-self-host (bukan dimuat dari Google Fonts
+   CDN) supaya aplikasi tetap tampil benar walau dibuka offline setelah
+   app-shell ter-cache. Total 4 file ~96KB, aman untuk PWA lapangan.
+   ============================================================ */
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/inter-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/inter-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/inter-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/inter-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* ============================================================
    1. DESIGN TOKENS
@@ -42,19 +77,28 @@
   --color-text-secondary: #6B7280;
   --color-text-tertiary: #9CA3AF;
 
-  /* Tipografi */
-  --font-family: 'Roboto', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  /* Tipografi — Inter sebagai font utama, fallback system font kalau
+     entah kenapa file gagal dimuat (misal saat offline pertama kali) */
+  --font-family: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
 
-  /* Radius & spacing */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  /* Radius — dinaikkan ke rentang 20-24px untuk kesan premium (brief:
+     "radius 20-24px"), chip/badge tetap pill (full) */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
   --radius-full: 999px;
 
+  /* Spacing — grid 8pt konsisten (semua kelipatan 4, mayoritas 8) */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
   --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Durasi animasi — micro-interaction ringan (150-220ms), tidak berlebihan */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --easing: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Elevation — dibuat halus (border + shadow tipis), gaya "premium software"
      bukan shadow tebal ala consumer app */
@@ -175,7 +219,7 @@ h1, h2, h3, p { margin: 0; }
   margin: 0 auto;
   min-height: 100%;
   position: relative;
-  padding-bottom: var(--bottom-nav-height);
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
   background: var(--color-bg);
 }
 
@@ -315,7 +359,8 @@ h1, h2, h3, p { margin: 0; }
   right: 0;
   max-width: 480px;
   margin: 0 auto;
-  height: var(--bottom-nav-height);
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--color-surface-raised);
   border-top: 1px solid var(--color-border);
   display: flex;
@@ -329,15 +374,18 @@ h1, h2, h3, p { margin: 0; }
   justify-content: center;
   gap: 3px;
   color: var(--color-text-tertiary);
+  transition: color var(--duration-base) var(--easing);
 }
+.bottom-nav-item .icon { transition: transform var(--duration-base) var(--easing); }
 .bottom-nav-item.active { color: var(--color-primary); }
+.bottom-nav-item.active .icon { transform: translateY(-1px) scale(1.08); }
 .nav-label { font-size: 11px; font-weight: 500; }
 
 /* FAB */
 .fab {
   position: fixed;
   right: var(--space-md);
-  bottom: calc(var(--bottom-nav-height) + var(--space-md));
+  bottom: calc(var(--bottom-nav-height) + var(--space-md) + env(safe-area-inset-bottom, 0px));
   width: 56px;
   height: 56px;
   border-radius: var(--radius-full);
@@ -347,6 +395,7 @@ h1, h2, h3, p { margin: 0; }
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-elevated);
+  transition: transform var(--duration-fast) var(--easing), box-shadow var(--duration-fast) var(--easing);
   z-index: 25;
 }
 .fab:active { transform: scale(0.95); }
@@ -360,11 +409,13 @@ h1, h2, h3, p { margin: 0; }
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg) var(--space-md);
   box-shadow: var(--shadow-card);
   margin-bottom: var(--space-sm);
+  transition: box-shadow var(--duration-base) var(--easing), border-color var(--duration-base) var(--easing);
 }
+.card:active { box-shadow: none; }
 .card-list { display: flex; flex-direction: column; gap: var(--space-sm); }
 
 .card-title {
@@ -455,7 +506,7 @@ h1, h2, h3, p { margin: 0; }
 .summary-item {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: var(--space-md) var(--space-sm);
   text-align: center;
   box-shadow: var(--shadow-card);
@@ -484,7 +535,7 @@ h1, h2, h3, p { margin: 0; }
 .chip-group.scroll-x::-webkit-scrollbar { display: none; }
 
 .chip {
-  padding: 7px 14px;
+  padding: 8px 14px;
   border-radius: var(--radius-full);
   background: var(--color-surface-alt);
   border: 1px solid var(--color-border);
@@ -493,6 +544,7 @@ h1, h2, h3, p { margin: 0; }
   white-space: nowrap;
   color: var(--color-text-primary);
   flex-shrink: 0;
+  transition: background var(--duration-fast) var(--easing), border-color var(--duration-fast) var(--easing), color var(--duration-fast) var(--easing);
 }
 .chip.selected {
   background: var(--color-primary-soft);
@@ -501,27 +553,58 @@ h1, h2, h3, p { margin: 0; }
 }
 
 /* Buttons */
+/* Ripple effect (CSS-only, tanpa JS) — lingkaran radial yang membesar
+   dari titik tengah tombol saat ditekan, dilepas halus saat lepas.
+   Dipakai bersama pada primary & secondary button lewat class .ripple. */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+.ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 70%);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--duration-fast) var(--easing), transform var(--duration-base) var(--easing);
+  pointer-events: none;
+}
+.ripple:active::after {
+  opacity: 1;
+  transform: scale(1.4);
+  transition: opacity 0ms, transform 0ms;
+}
+.secondary-button.ripple::after {
+  background: radial-gradient(circle, rgba(30,58,138,0.12) 0%, transparent 70%);
+}
+
 .primary-button {
   background: var(--color-primary);
   color: var(--color-on-primary);
-  padding: 14px;
+  padding: 16px;
+  min-height: 52px;
   border-radius: var(--radius-md);
   font-weight: 600;
   font-size: 14px;
+  transition: background var(--duration-fast) var(--easing), transform var(--duration-fast) var(--easing);
 }
-.primary-button:active { background: var(--color-primary-hover); }
+.primary-button:active { background: var(--color-primary-hover); transform: scale(0.98); }
 
 .secondary-button {
   background: var(--color-surface-alt);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
-  padding: 14px;
+  padding: 16px;
+  min-height: 52px;
   border-radius: var(--radius-md);
   font-weight: 600;
   font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background var(--duration-fast) var(--easing);
   gap: 6px;
 }
 
@@ -564,16 +647,19 @@ h1, h2, h3, p { margin: 0; }
 }
 .form-input, .form-select, .form-textarea {
   width: 100%;
-  padding: 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
+  padding: 13px 14px;
+  min-height: 48px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-primary);
   font-size: 14px;
+  transition: border-color var(--duration-fast) var(--easing), box-shadow var(--duration-fast) var(--easing);
 }
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 .form-textarea { resize: vertical; }
 .form-hint {
@@ -737,7 +823,21 @@ h1, h2, h3, p { margin: 0; }
   text-align: center;
   color: var(--color-text-tertiary);
   font-size: 13px;
-  padding: var(--space-lg) var(--space-md);
+  padding: var(--space-xl) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.empty-state-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
 }
 
 .loading-text {
