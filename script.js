@@ -522,7 +522,7 @@ const Api = {
    * OfflineQueue dan dianggap "berhasil secara lokal".
    */
   async call(action, payload, options) {
-    const queueableActions = ['createProject', 'createActivity', 'uploadPhoto', 'createContact'];
+    const queueableActions = ['createProject', 'createActivity', 'uploadPhoto', 'createContact', 'updateProject'];
     const opts = options || {};
 
     try {
@@ -1093,7 +1093,8 @@ const AddProjectSheet = {
       location_address: address,
       product_type: State.selectedProductTypes.join(', '),
       project_category: document.getElementById('select-project-category').value,
-      construction_stage: document.getElementById('select-construction-stage').value
+      construction_stage: document.getElementById('select-construction-stage').value,
+      estimated_value: document.getElementById('input-project-value').value || ''
     };
 
     // Tambahkan langsung ke tampilan lokal (optimistic) — supaya project
@@ -1326,11 +1327,28 @@ const UpdateProgressSheet = {
       photo_ids: photoAssignments.map((p) => p.photoId)
     };
 
+    const estimatedValue = document.getElementById('input-estimated-value').value;
+
     // Tutup sheet & beri feedback SEGERA — supaya sales tidak menunggu
     // proses upload/jaringan selesai dulu baru bisa lanjut kerja.
     // Proses upload+simpan aktivitas berjalan di background setelah ini.
     SheetManager.close('sheet-update-progress');
     Snackbar.showPersistent('Menyimpan...');
+
+    // Kirim update nilai project (kalau diisi) sebagai request TERPISAH,
+    // tidak menghalangi alur utama simpan aktivitas — sengaja tidak
+    // ditunggu (fire-and-forget), sama seperti pola kontak di Tambah Project.
+    if (estimatedValue) {
+      Api.call('updateProject', {
+        project_id: State.currentProjectId,
+        sales_code: SVS_CONFIG.SALES_CODE,
+        estimated_value: estimatedValue
+      }).then((result) => {
+        if (!result.success && !result.queued) {
+          Snackbar.show('Gagal menyimpan nilai project: ' + (result.message || ''), 'error');
+        }
+      });
+    }
 
     try {
       // Upload setiap foto satu per satu (kalau ada) — photo_id sudah
