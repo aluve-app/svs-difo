@@ -641,8 +641,6 @@ const ThemeToggle = {
 
   updateIcon() {
     const isDark = this.isDark();
-    document.getElementById('theme-icon-moon').hidden = isDark;
-    document.getElementById('theme-icon-sun').hidden = !isDark;
     document.getElementById('btn-theme-toggle').classList.toggle('is-dark', isDark);
   }
 };
@@ -1540,8 +1538,13 @@ function initApp() {
   const hari = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', "Jum'at", 'Sabtu'];
   const bulanPanjang = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const now = new Date();
+  let jam12 = now.getHours() % 12;
+  if (jam12 === 0) jam12 = 12;
+  const menit = String(now.getMinutes()).padStart(2, '0');
+  const ampm = now.getHours() < 12 ? 'AM' : 'PM';
   document.getElementById('dashboard-date-subtitle').textContent =
-    hari[now.getDay()] + ', ' + now.getDate() + ' ' + bulanPanjang[now.getMonth()] + ' ' + now.getFullYear();
+    hari[now.getDay()] + ', ' + now.getDate() + ' ' + bulanPanjang[now.getMonth()] + ' ' + now.getFullYear() +
+    ' • ' + jam12 + ':' + menit + ' ' + ampm;
 
   // Sembunyikan logo header otomatis kalau file assets/icons/logo.png
   // belum di-upload (mencegah tampilan "gambar rusak" muncul di header)
