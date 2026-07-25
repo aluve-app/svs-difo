@@ -463,6 +463,24 @@ h1, h2, h3, p { margin: 0; }
   transition: box-shadow var(--duration-base) var(--easing), border-color var(--duration-base) var(--easing);
 }
 .card:active { box-shadow: none; }
+#project-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+#project-list .card {
+  text-align: center;
+  padding: var(--space-md) var(--space-sm);
+}
+#project-list .card-title {
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+#project-list .card-sub-light {
+  justify-content: center;
+}
+
 .card-list { display: flex; flex-direction: column; gap: var(--space-sm); }
 
 .card-title {
@@ -587,7 +605,7 @@ h1, h2, h3, p { margin: 0; }
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-sm);
+  gap: 12px;
 }
 .summary-item {
   background: var(--color-surface);
@@ -646,8 +664,20 @@ h1, h2, h3, p { margin: 0; }
 }
 .chip-group.scroll-x::-webkit-scrollbar { display: none; }
 
+#quick-filter-chips {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+#quick-filter-chips .chip {
+  flex: 1;
+  text-align: center;
+}
+
 #summary-period-chips {
   display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 #summary-period-chips .chip {
   flex: 1;
