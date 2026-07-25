@@ -58,6 +58,8 @@
       <!-- ---------- VIEW: DASHBOARD ---------- -->
       <section id="view-dashboard" class="view active" data-view="dashboard">
 
+        <p id="dashboard-date-subtitle" class="greeting-subtitle"></p>
+
         <div class="section-block">
           <h2 class="section-title">
             <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
@@ -83,15 +85,15 @@
             <button class="chip" type="button" data-period="month">Bulan Ini</button>
           </div>
           <div class="summary-grid">
-            <div class="summary-item" data-summary-type="visit" role="button" tabindex="0">
+            <div class="summary-item glow-primary" data-summary-type="visit" role="button" tabindex="0">
               <span id="summary-visit" class="summary-number">0</span>
               <span class="summary-label">Kunjungan</span>
             </div>
-            <div class="summary-item" data-summary-type="won" role="button" tabindex="0">
+            <div class="summary-item glow-success" data-summary-type="won" role="button" tabindex="0">
               <span id="summary-won" class="summary-number">0</span>
               <span class="summary-label">Deal Ditutup</span>
             </div>
-            <div class="summary-item" data-summary-type="lost" role="button" tabindex="0">
+            <div class="summary-item glow-danger" data-summary-type="lost" role="button" tabindex="0">
               <span id="summary-lost" class="summary-number">0</span>
               <span class="summary-label">Deal Hilang</span>
             </div>
@@ -143,6 +145,7 @@
           <p id="timeline-project-meta" class="card-sub">-</p>
           <p id="timeline-project-address" class="card-sub-light">-</p>
           <div id="timeline-project-contacts" class="contact-list"></div>
+          <p id="timeline-project-detail" class="card-sub-light"></p>
         </div>
 
         <div id="timeline-list" class="timeline"></div>
