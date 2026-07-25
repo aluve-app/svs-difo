@@ -273,6 +273,20 @@ const Utils = {
     return 'dot-aktif';
   },
 
+  /** Label status ringkas untuk ditampilkan di judul kartu, contoh: "Coba lagi (Aktif)" */
+  statusLabel(pipelineStage) {
+    if (pipelineStage === 'Won') return 'Won';
+    if (pipelineStage === 'Lost') return 'Lost';
+    return 'Aktif';
+  },
+
+  /** Class glow border sesuai status — dipakai di kartu project & ringkasan */
+  statusGlowClass(pipelineStage) {
+    if (pipelineStage === 'Won') return 'glow-warning';
+    if (pipelineStage === 'Lost') return 'glow-danger';
+    return 'glow-success';
+  },
+
   /** Membaca file foto menjadi base64 (tanpa prefix data:...) + kompresi sederhana via canvas */
   compressAndReadImage(file) {
     return new Promise((resolve, reject) => {
@@ -861,14 +875,20 @@ const ProjectListView = {
         ? '<p class="card-sub-light">' + Icons.user + ' ' + contact.contact_name + ' (' + contact.role + ')</p>'
         : '';
 
+      const statusLabel = Utils.statusLabel(p.Pipeline_Stage);
+      const glowClass = Utils.statusGlowClass(p.Pipeline_Stage);
+
       const card = document.createElement('div');
-      card.className = 'card';
+      card.className = 'card ' + glowClass;
       card.setAttribute('data-open-project', p.Project_ID);
       card.setAttribute('data-project-name', p.Project_Name);
       card.setAttribute('data-project-address', p.Location_Address || '');
       card.setAttribute('data-project-stage', p.Pipeline_Stage);
+      card.setAttribute('data-project-product', p.Product_Type || '');
+      card.setAttribute('data-project-construction', p.Construction_Stage || '');
       card.innerHTML =
-        '<h3 class="card-title"><span class="dot ' + dotClass + '"></span>' + p.Project_Name + '</h3>' +
+        '<h3 class="card-title"><span class="dot ' + dotClass + '"></span>' + p.Project_Name +
+        ' <span class="card-status-suffix">(' + statusLabel + ')</span></h3>' +
         '<p class="card-sub">' + p.Pipeline_Stage + ' · ' + valueText + '</p>' +
         '<p class="card-sub-light">' + Icons.pin + ' ' + (p.Location_Address || '-') + '</p>' +
         contactLine +
@@ -882,7 +902,9 @@ const ProjectListView = {
           el.dataset.openProject,
           el.dataset.projectName,
           el.dataset.projectAddress,
-          el.dataset.projectStage
+          el.dataset.projectStage,
+          el.dataset.projectProduct,
+          el.dataset.projectConstruction
         );
       });
     });
@@ -893,7 +915,7 @@ const ProjectListView = {
    9. RENDER: ACTIVITY TIMELINE
    ============================================================ */
 const TimelineView = {
-  async open(projectId, projectName, address, stage) {
+  async open(projectId, projectName, address, stage, productType, constructionStage) {
     State.currentProjectId = projectId;
     State.currentProjectName = projectName;
     State.currentProjectStage = stage;
@@ -901,6 +923,18 @@ const TimelineView = {
     document.getElementById('timeline-project-name').textContent = projectName;
     document.getElementById('timeline-project-meta').textContent = stage;
     document.getElementById('timeline-project-address').textContent = address || '-';
+
+    // Border glow di header detail mengikuti status project (Aktif/Won/Lost),
+    // konsisten dengan warna yang sama di kartu Project List.
+    const headerCard = document.querySelector('#view-timeline .timeline-header');
+    headerCard.classList.remove('glow-success', 'glow-warning', 'glow-danger');
+    headerCard.classList.add(Utils.statusGlowClass(stage));
+
+    const detailParts = [];
+    if (productType) detailParts.push('Jenis Produk: ' + productType);
+    if (constructionStage) detailParts.push('Tahap Konstruksi: ' + constructionStage);
+    document.getElementById('timeline-project-detail').textContent =
+      detailParts.length > 0 ? 'Detail Proyek: ' + detailParts.join(' · ') : '';
 
     // PENTING: bersihkan konten lama SEGERA (foto/aktivitas project
     // sebelumnya) dan tampilkan loading — supaya sales tidak sempat
@@ -962,6 +996,9 @@ const TimelineView = {
       if (latestStage) {
         State.currentProjectStage = latestStage;
         document.getElementById('timeline-project-meta').textContent = latestStage;
+        const headerCard = document.querySelector('#view-timeline .timeline-header');
+        headerCard.classList.remove('glow-success', 'glow-warning', 'glow-danger');
+        headerCard.classList.add(Utils.statusGlowClass(latestStage));
       }
     }
   },
@@ -1497,6 +1534,13 @@ function initApp() {
 
   document.getElementById('header-title').textContent =
     'Halo, ' + SVS_CONFIG.SALES_NAME.split(' ')[0] + ' 👋';
+
+  // Tampilkan tanggal hari ini dalam format Indonesia di bawah sapaan
+  const hari = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', "Jum'at", 'Sabtu'];
+  const bulanPanjang = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const now = new Date();
+  document.getElementById('dashboard-date-subtitle').textContent =
+    hari[now.getDay()] + ', ' + now.getDate() + ' ' + bulanPanjang[now.getMonth()] + ' ' + now.getFullYear();
 
   // Sembunyikan logo header otomatis kalau file assets/icons/logo.png
   // belum di-upload (mencegah tampilan "gambar rusak" muncul di header)
