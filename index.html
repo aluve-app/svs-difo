@@ -198,15 +198,7 @@
 
         <div class="form-group">
           <label class="form-label">Jenis Produk * (pilih min. 1)</label>
-          <div id="product-type-chips" class="chip-group wrap">
-            <button class="chip" type="button" data-product="Kusen Aluminium">Kusen</button>
-            <button class="chip" type="button" data-product="Pintu Aluminium">Pintu</button>
-            <button class="chip" type="button" data-product="Jendela Aluminium">Jendela</button>
-            <button class="chip" type="button" data-product="Curtain Wall">Curtain Wall</button>
-            <button class="chip" type="button" data-product="Railing">Railing</button>
-            <button class="chip" type="button" data-product="ACP">ACP</button>
-            <button class="chip" type="button" data-product="Facade">Facade</button>
-          </div>
+          <div id="product-type-chips" class="chip-group wrap"></div>
         </div>
 
         <div class="form-group">
@@ -241,14 +233,6 @@
         <div class="form-group">
           <select id="select-contact-role" class="form-select">
             <option value="">Role Kontak (opsional)</option>
-            <option value="Owner">Owner</option>
-            <option value="Developer">Developer</option>
-            <option value="Kontraktor">Kontraktor</option>
-            <option value="Konsultan">Konsultan</option>
-            <option value="Arsitek">Arsitek</option>
-            <option value="Mandor">Mandor</option>
-            <option value="Project Manager">Project Manager</option>
-            <option value="Purchasing">Purchasing</option>
           </select>
         </div>
 
@@ -270,24 +254,7 @@
 
         <div class="form-group">
           <label class="form-label">Jenis Aktivitas *</label>
-          <div id="activity-type-grid" class="activity-type-grid">
-            <button class="activity-type-btn" type="button" data-activity-type="Visit">
-              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              <span>Visit</span>
-            </button>
-            <button class="activity-type-btn" type="button" data-activity-type="Follow Up">
-              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              <span>Follow Up</span>
-            </button>
-            <button class="activity-type-btn" type="button" data-activity-type="Kirim Penawaran">
-              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              <span>Kirim Tawaran</span>
-            </button>
-            <button class="activity-type-btn" type="button" data-activity-type="Deal Update">
-              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-              <span>Deal</span>
-            </button>
-          </div>
+          <div id="activity-type-grid" class="activity-type-grid"></div>
         </div>
 
         <div class="form-group">
@@ -314,14 +281,7 @@
 
         <div class="form-group">
           <label class="form-label" for="select-pipeline-stage">Status Project Saat Ini *</label>
-          <select id="select-pipeline-stage" class="form-select" required>
-            <option value="New Visit">New Visit</option>
-            <option value="Qualified">Qualified</option>
-            <option value="Quotation Sent">Quotation Sent</option>
-            <option value="Negotiation">Negotiation</option>
-            <option value="Won">Won</option>
-            <option value="Lost">Lost</option>
-          </select>
+          <select id="select-pipeline-stage" class="form-select" required></select>
         </div>
 
         <div id="lost-reason-group" class="form-group" hidden>
@@ -329,12 +289,7 @@
             <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             Alasan Lost *
           </label>
-          <div id="lost-reason-chips" class="chip-group wrap">
-            <button class="chip" type="button" data-lost-reason="Kalah Harga">Kalah Harga</button>
-            <button class="chip" type="button" data-lost-reason="Kalah Kompetitor">Kalah Kompetitor</button>
-            <button class="chip" type="button" data-lost-reason="Proyek Batal">Proyek Batal</button>
-            <button class="chip" type="button" data-lost-reason="Spek Tidak Cocok">Spek Tidak Cocok</button>
-          </div>
+          <div id="lost-reason-chips" class="chip-group wrap"></div>
         </div>
 
         <div class="form-group">
@@ -366,12 +321,6 @@
           <label class="form-label">Pipeline Stage</label>
           <div id="filter-stage-chips" class="chip-group wrap">
             <button class="chip selected" type="button" data-filter-stage="">Semua</button>
-            <button class="chip" type="button" data-filter-stage="New Visit">New Visit</button>
-            <button class="chip" type="button" data-filter-stage="Qualified">Qualified</button>
-            <button class="chip" type="button" data-filter-stage="Quotation Sent">Quotation</button>
-            <button class="chip" type="button" data-filter-stage="Negotiation">Negotiation</button>
-            <button class="chip" type="button" data-filter-stage="Won">Won</button>
-            <button class="chip" type="button" data-filter-stage="Lost">Lost</button>
           </div>
         </div>
 
@@ -379,9 +328,6 @@
           <label class="form-label">Jenis Produk</label>
           <div id="filter-product-chips" class="chip-group wrap">
             <button class="chip selected" type="button" data-filter-product="">Semua</button>
-            <button class="chip" type="button" data-filter-product="Kusen Aluminium">Kusen</button>
-            <button class="chip" type="button" data-filter-product="Jendela Aluminium">Jendela</button>
-            <button class="chip" type="button" data-filter-product="Curtain Wall">Curtain Wall</button>
           </div>
         </div>
 
