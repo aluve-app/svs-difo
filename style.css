@@ -384,6 +384,7 @@ h1, h2, h3, p { margin: 0; }
 /* FAB */
 .fab {
   position: fixed;
+  left: auto;
   right: var(--space-md);
   bottom: calc(var(--bottom-nav-height) + var(--space-md) + env(safe-area-inset-bottom, 0px));
   width: 56px;
@@ -510,7 +511,10 @@ h1, h2, h3, p { margin: 0; }
   padding: var(--space-md) var(--space-sm);
   text-align: center;
   box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--easing);
 }
+.summary-item:active { transform: scale(0.96); }
 .summary-number {
   display: block;
   font-size: 24px;
