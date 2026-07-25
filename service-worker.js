@@ -15,7 +15,7 @@
  * ============================================================
  */
 
-const CACHE_NAME = 'svs-cache-v2';
+const CACHE_NAME = 'svs-cache-v3';
 
 // PENTING: config.js SENGAJA TIDAK dimasukkan ke daftar precache ini.
 // File itu berisi identitas sales yang wajar diedit sewaktu-waktu tanpa
@@ -28,7 +28,11 @@ const APP_SHELL_FILES = [
   './index.html',
   './style.css',
   './script.js',
-  './manifest.json'
+  './manifest.json',
+  './assets/fonts/inter-400.woff2',
+  './assets/fonts/inter-500.woff2',
+  './assets/fonts/inter-600.woff2',
+  './assets/fonts/inter-700.woff2'
 ];
 
 /**
