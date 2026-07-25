@@ -400,6 +400,12 @@ h1, h2, h3, p { margin: 0; }
   z-index: 25;
 }
 .fab:active { transform: scale(0.95); }
+/* PENTING: .ripple (dipakai bersama di FAB) punya position:relative yang
+   bisa menimpa position:fixed milik .fab kalau urutan CSS tidak
+   menguntungkan (spesifisitas sama-sama 1 class). Selector gabungan di
+   bawah ini SENGAJA lebih spesifik supaya position:fixed FAB selalu
+   menang — inilah penyebab FAB sempat ikut ter-scroll bersama konten. */
+.fab.ripple { position: fixed; }
 
 /* ============================================================
    4. KOMPONEN
@@ -618,6 +624,9 @@ h1, h2, h3, p { margin: 0; }
   bottom: calc(var(--bottom-nav-height) + var(--space-md));
   margin-top: var(--space-md);
 }
+/* Proteksi sama seperti .fab.ripple di atas — jaga-jaga urutan CSS
+   berubah lagi di masa depan */
+.sticky-bottom.ripple { position: sticky; }
 
 /* Search bar */
 .search-bar {
