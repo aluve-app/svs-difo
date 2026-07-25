@@ -85,7 +85,7 @@
      "radius 20-24px"), chip/badge tetap pill (full) */
   --radius-sm: 10px;
   --radius-md: 16px;
-  --radius-lg: 24px;
+  --radius-lg: 28px;
   --radius-full: 999px;
 
   /* Spacing — grid 8pt konsisten (semua kelipatan 4, mayoritas 8) */
@@ -288,6 +288,39 @@ h1, h2, h3, p { margin: 0; }
   opacity: 0.75;
 }
 .icon-btn.icon-btn-subtle .icon { width: 17px; height: 17px; }
+
+/* Toggle switch tema — pil dengan bulatan geser, gaya iOS switch */
+.theme-switch {
+  width: 46px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.18);
+  position: relative;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: background var(--duration-base) var(--easing);
+}
+.theme-switch-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: #FFFFFF;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(0);
+  transition: transform var(--duration-base) var(--easing);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.theme-switch.is-dark {
+  background: rgba(0, 0, 0, 0.28);
+}
+.theme-switch.is-dark .theme-switch-thumb {
+  transform: translateX(20px);
+}
 
 .badge {
   position: absolute;
@@ -553,13 +586,36 @@ h1, h2, h3, p { margin: 0; }
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-md) var(--space-sm);
+  padding: var(--space-lg) var(--space-sm);
   text-align: center;
   box-shadow: var(--shadow-card);
   cursor: pointer;
   transition: transform var(--duration-fast) var(--easing);
 }
 .summary-item:active { transform: scale(0.96); }
+
+/* PROTEKSI: pastikan glow border SELALU menang di atas border netral
+   .summary-item/.card, tidak peduli urutan definisi di file ini —
+   pelajaran dari bug .fab/.ripple sebelumnya (2 selector 1-class yang
+   sama kuat, siapa yang belakangan di file yang menang, rawan pecah
+   lagi kalau CSS diedit ulang di masa depan). Selector gabungan di
+   bawah ini sengaja lebih spesifik (2 class) supaya menang permanen. */
+.summary-item.glow-success, .card.glow-success {
+  border: 1.5px solid var(--color-success);
+  box-shadow: 0 0 0 1px var(--color-success-soft), 0 0 18px -4px rgba(22, 163, 74, 0.55);
+}
+.summary-item.glow-warning, .card.glow-warning {
+  border: 1.5px solid var(--color-warning);
+  box-shadow: 0 0 0 1px var(--color-warning-soft), 0 0 18px -4px rgba(217, 119, 6, 0.55);
+}
+.summary-item.glow-danger, .card.glow-danger {
+  border: 1.5px solid var(--color-danger);
+  box-shadow: 0 0 0 1px var(--color-danger-soft), 0 0 18px -4px rgba(220, 38, 38, 0.55);
+}
+.summary-item.glow-primary, .card.glow-primary {
+  border: 1.5px solid var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary-soft), 0 0 18px -4px rgba(30, 58, 138, 0.55);
+}
 .summary-number {
   display: block;
   font-size: 24px;
@@ -687,8 +743,8 @@ h1, h2, h3, p { margin: 0; }
   gap: var(--space-sm);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 10px var(--space-md);
+  border-radius: var(--radius-full);
+  padding: 13px var(--space-md);
   margin-bottom: var(--space-md);
   color: var(--color-text-tertiary);
 }
