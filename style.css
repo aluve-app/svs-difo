@@ -474,8 +474,47 @@ h1, h2, h3, p { margin: 0; }
 
 /* Follow-up card variant */
 .followup-card { border-left: 3px solid var(--color-success); }
-.followup-card.overdue { border-left-color: var(--color-danger); }
-.followup-card.today { border-left-color: var(--color-warning); }
+.followup-card.overdue { border-left-color: var(--color-danger); box-shadow: 0 0 14px -4px rgba(220,38,38,0.5); }
+.followup-card.today { border-left-color: var(--color-warning); box-shadow: 0 0 14px -4px rgba(217,119,6,0.5); }
+
+/* ============================================================
+   GLOW BORDER — border berwarna + bayangan menyala di sekelilingnya,
+   dipakai untuk kartu project (sesuai status: Aktif/Won/Lost) dan
+   kartu ringkasan Dashboard. Ini elemen visual inti dari arah desain
+   "glow/neon" yang diminta — border tidak sekadar warna solid tipis,
+   tapi punya efek bercahaya (box-shadow blur berwarna sama).
+   ============================================================ */
+.glow-success {
+  border: 1.5px solid var(--color-success);
+  box-shadow: 0 0 0 1px var(--color-success-soft), 0 0 18px -4px rgba(22, 163, 74, 0.55);
+}
+.glow-warning {
+  border: 1.5px solid var(--color-warning);
+  box-shadow: 0 0 0 1px var(--color-warning-soft), 0 0 18px -4px rgba(217, 119, 6, 0.55);
+}
+.glow-danger {
+  border: 1.5px solid var(--color-danger);
+  box-shadow: 0 0 0 1px var(--color-danger-soft), 0 0 18px -4px rgba(220, 38, 38, 0.55);
+}
+.glow-primary {
+  border: 1.5px solid var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary-soft), 0 0 18px -4px rgba(30, 58, 138, 0.55);
+}
+
+/* Suffix status di judul kartu project, contoh: "Coba lagi (Aktif)" */
+.card-status-suffix {
+  font-weight: 500;
+  opacity: 0.75;
+  font-size: 0.9em;
+}
+
+/* Subtitle tanggal di bawah sapaan Dashboard */
+.greeting-subtitle {
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+  margin-top: -4px;
+  margin-bottom: var(--space-md);
+}
 
 .followup-card-action {
   margin-top: var(--space-sm);
@@ -560,6 +599,19 @@ h1, h2, h3, p { margin: 0; }
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+/* Pill toggle khusus (periode Dashboard & tab filter Project List) —
+   dibuat lebih mencolok/menyala saat terpilih, beda dari chip pilihan
+   biasa (produk, alasan lost) yang tetap gaya soft-tint sederhana. */
+#summary-period-chips .chip.selected,
+#quick-filter-chips .chip.selected,
+#filter-stage-chips .chip.selected,
+#filter-product-chips .chip.selected {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: 0 0 16px -2px rgba(30, 58, 138, 0.65);
 }
 
 /* Buttons */
@@ -877,15 +929,16 @@ h1, h2, h3, p { margin: 0; }
 .contact-link {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 6px;
+  gap: 6px;
+  margin-top: 8px;
   margin-right: var(--space-sm);
-  padding: 5px 11px;
+  padding: 9px 16px;
   border-radius: var(--radius-full);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  font-size: 12px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 13px;
   font-weight: 600;
+  box-shadow: 0 0 14px -3px rgba(30, 58, 138, 0.6);
   text-decoration: none;
 }
 
