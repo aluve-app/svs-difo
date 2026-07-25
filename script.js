@@ -105,6 +105,145 @@ const Icons = {
 };
 
 /* ============================================================
+   1c. LOOKUP CACHE — daftar pilihan (status pipeline, jenis aktivitas,
+   jenis produk, alasan lost, role kontak) diambil dari sheet "Lookup"
+   di backend, supaya menambah/mengurangi pilihan cukup edit Google
+   Sheets, TANPA perlu ubah kode aplikasi.
+
+   Strategi offline-aman:
+   1. Simpan hasil terakhir yang berhasil dimuat ke localStorage —
+      kunjungan berikutnya langsung pakai itu (instan, tidak nunggu
+      server), sambil diam-diam cek versi terbaru di background.
+   2. Kalau belum pernah berhasil sama sekali (device baru / sinyal
+      pertama kali buka jelek), pakai DEFAULTS di bawah supaya
+      aplikasi tetap bisa dipakai, tidak pernah kosong total.
+   ============================================================ */
+const LookupCache = {
+  STORAGE_KEY: 'svs_lookup_options',
+
+  DEFAULTS: {
+    Activity_Type: ['Visit', 'Follow Up', 'Kirim Penawaran', 'Deal Update'],
+    Pipeline_Stage: ['New Visit', 'Qualified', 'Quotation Sent', 'Negotiation', 'Won', 'Lost'],
+    Product_Type: ['Kusen Aluminium', 'Pintu Aluminium', 'Jendela Aluminium', 'Curtain Wall', 'Railing', 'ACP', 'Facade'],
+    Lost_Reason: ['Kalah Harga', 'Kalah Kompetitor', 'Proyek Batal', 'Spek Tidak Cocok'],
+    Contact_Role: ['Owner', 'Developer', 'Kontraktor', 'Konsultan', 'Arsitek', 'Mandor', 'Project Manager', 'Purchasing']
+  },
+
+  get() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(this.STORAGE_KEY));
+      return saved || this.DEFAULTS;
+    } catch (e) {
+      return this.DEFAULTS;
+    }
+  },
+
+  save(data) {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+  },
+
+  /** Ambil versi terbaru dari server (dipanggil di background saat app dibuka) */
+  async refresh() {
+    const result = await Api.call('readLookupOptions', {}, { noQueue: true }).catch(() => null);
+    if (result && result.success && result.data) {
+      this.save(result.data);
+      return result.data;
+    }
+    return null;
+  }
+};
+
+/* ============================================================
+   1d. LOOKUP RENDERER — menggambar ulang 5 pemilih (chip/dropdown)
+   berdasarkan data dari LookupCache. Dipanggil sekali saat app dibuka
+   (pakai data cache/default, instan) dan sekali lagi kalau refresh()
+   di background berhasil dapat data lebih baru.
+   ============================================================ */
+const LookupRenderer = {
+  // Ikon per Jenis Aktivitas yang sudah dikenal — kalau ada nama baru
+  // ditambahkan lewat sheet yang tidak ada di daftar ini, otomatis
+  // pakai ikon fallback generik supaya tetap tampil rapi.
+  ACTIVITY_ICONS: {
+    'Visit': Icons.pin,
+    'Follow Up': '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+    'Kirim Penawaran': '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+    'Deal Update': '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+  },
+  ACTIVITY_ICON_FALLBACK: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>',
+
+  renderAll(data) {
+    this.renderActivityTypeGrid(data.Activity_Type || []);
+    this.renderPipelineStageSelect(data.Pipeline_Stage || []);
+    this.renderProductTypeChips(data.Product_Type || []);
+    this.renderLostReasonChips(data.Lost_Reason || []);
+    this.renderContactRoleSelect(data.Contact_Role || []);
+    this.renderFilterStageChips(data.Pipeline_Stage || []);
+    this.renderFilterProductChips(data.Product_Type || []);
+  },
+
+  renderActivityTypeGrid(types) {
+    const container = document.getElementById('activity-type-grid');
+    const currentSelection = State.selectedActivityType;
+    container.innerHTML = types.map((type) => {
+      const icon = this.ACTIVITY_ICONS[type] || this.ACTIVITY_ICON_FALLBACK;
+      const selectedClass = type === currentSelection ? ' selected' : '';
+      return '<button class="activity-type-btn' + selectedClass + '" type="button" data-activity-type="' + type + '">' +
+        icon + '<span>' + type + '</span></button>';
+    }).join('');
+  },
+
+  renderPipelineStageSelect(stages) {
+    const select = document.getElementById('select-pipeline-stage');
+    const currentValue = select.value;
+    select.innerHTML = stages.map((s) => '<option value="' + s + '">' + s + '</option>').join('');
+    if (stages.includes(currentValue)) select.value = currentValue;
+  },
+
+  renderProductTypeChips(products) {
+    const container = document.getElementById('product-type-chips');
+    container.innerHTML = products.map((p) => {
+      const selectedClass = State.selectedProductTypes.includes(p) ? ' selected' : '';
+      return '<button class="chip' + selectedClass + '" type="button" data-product="' + p + '">' + p + '</button>';
+    }).join('');
+  },
+
+  renderLostReasonChips(reasons) {
+    const container = document.getElementById('lost-reason-chips');
+    container.innerHTML = reasons.map((r) => {
+      const selectedClass = r === State.selectedLostReason ? ' selected' : '';
+      return '<button class="chip' + selectedClass + '" type="button" data-lost-reason="' + r + '">' + r + '</button>';
+    }).join('');
+  },
+
+  renderContactRoleSelect(roles) {
+    const select = document.getElementById('select-contact-role');
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">Role Kontak (opsional)</option>' +
+      roles.map((r) => '<option value="' + r + '">' + r + '</option>').join('');
+    if (roles.includes(currentValue)) select.value = currentValue;
+  },
+
+  renderFilterStageChips(stages) {
+    const container = document.getElementById('filter-stage-chips');
+    const extra = stages.map((s) => '<button class="chip" type="button" data-filter-stage="' + s + '">' + s + '</button>').join('');
+    // Chip "Semua" (statis, di HTML) selalu dipertahankan sebagai elemen pertama
+    const semuaChip = container.querySelector('[data-filter-stage=""]');
+    container.innerHTML = '';
+    if (semuaChip) container.appendChild(semuaChip);
+    container.insertAdjacentHTML('beforeend', extra);
+  },
+
+  renderFilterProductChips(products) {
+    const container = document.getElementById('filter-product-chips');
+    const extra = products.map((p) => '<button class="chip" type="button" data-filter-product="' + p + '">' + p + '</button>').join('');
+    const semuaChip = container.querySelector('[data-filter-product=""]');
+    container.innerHTML = '';
+    if (semuaChip) container.appendChild(semuaChip);
+    container.insertAdjacentHTML('beforeend', extra);
+  }
+};
+
+/* ============================================================
    2. UTILS
    ============================================================ */
 const Utils = {
@@ -865,16 +1004,20 @@ const AddProjectSheet = {
   init() {
     document.getElementById('fab-add-project').addEventListener('click', () => this.open());
 
-    document.querySelectorAll('#product-type-chips .chip').forEach((chip) => {
-      chip.addEventListener('click', () => {
-        chip.classList.toggle('selected');
-        const value = chip.dataset.product;
-        if (chip.classList.contains('selected')) {
-          State.selectedProductTypes.push(value);
-        } else {
-          State.selectedProductTypes = State.selectedProductTypes.filter((v) => v !== value);
-        }
-      });
+    // Event delegation: chip Jenis Produk sekarang dibuat dinamis dari
+    // sheet Lookup (bisa berubah-ubah), jadi listener dipasang di
+    // KONTAINER-nya, bukan per-chip — supaya tetap berfungsi walau
+    // chip-nya baru dirender belakangan/diperbarui.
+    document.getElementById('product-type-chips').addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      chip.classList.toggle('selected');
+      const value = chip.dataset.product;
+      if (chip.classList.contains('selected')) {
+        State.selectedProductTypes.push(value);
+      } else {
+        State.selectedProductTypes = State.selectedProductTypes.filter((v) => v !== value);
+      }
     });
 
     document.getElementById('form-add-project').addEventListener('submit', (e) => {
@@ -975,12 +1118,15 @@ const AddProjectSheet = {
    ============================================================ */
 const UpdateProgressSheet = {
   init() {
-    document.querySelectorAll('#activity-type-grid .activity-type-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#activity-type-grid .activity-type-btn').forEach((b) => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        State.selectedActivityType = btn.dataset.activityType;
-      });
+    // Event delegation: tombol Jenis Aktivitas & chip Alasan Lost sekarang
+    // dibuat dinamis dari sheet Lookup, jadi listener dipasang di
+    // KONTAINER-nya, bukan per-elemen.
+    document.getElementById('activity-type-grid').addEventListener('click', (e) => {
+      const btn = e.target.closest('.activity-type-btn');
+      if (!btn) return;
+      document.querySelectorAll('#activity-type-grid .activity-type-btn').forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      State.selectedActivityType = btn.dataset.activityType;
     });
 
     document.getElementById('btn-take-photo').addEventListener('click', () => {
@@ -1017,12 +1163,12 @@ const UpdateProgressSheet = {
       lostGroup.hidden = e.target.value !== 'Lost';
     });
 
-    document.querySelectorAll('#lost-reason-chips .chip').forEach((chip) => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('#lost-reason-chips .chip').forEach((c) => c.classList.remove('selected'));
-        chip.classList.add('selected');
-        State.selectedLostReason = chip.dataset.lostReason;
-      });
+    document.getElementById('lost-reason-chips').addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      document.querySelectorAll('#lost-reason-chips .chip').forEach((c) => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      State.selectedLostReason = chip.dataset.lostReason;
     });
 
     document.querySelectorAll('#followup-quick-chips .chip').forEach((chip) => {
@@ -1191,20 +1337,20 @@ const FilterSheet = {
       SheetManager.open('sheet-filter');
     });
 
-    document.querySelectorAll('#filter-stage-chips .chip').forEach((chip) => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('#filter-stage-chips .chip').forEach((c) => c.classList.remove('selected'));
-        chip.classList.add('selected');
-        State.filterStage = chip.dataset.filterStage;
-      });
+    document.getElementById('filter-stage-chips').addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      document.querySelectorAll('#filter-stage-chips .chip').forEach((c) => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      State.filterStage = chip.dataset.filterStage;
     });
 
-    document.querySelectorAll('#filter-product-chips .chip').forEach((chip) => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('#filter-product-chips .chip').forEach((c) => c.classList.remove('selected'));
-        chip.classList.add('selected');
-        State.filterProduct = chip.dataset.filterProduct;
-      });
+    document.getElementById('filter-product-chips').addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      document.querySelectorAll('#filter-product-chips .chip').forEach((c) => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      State.filterProduct = chip.dataset.filterProduct;
     });
 
     document.getElementById('btn-filter-reset').addEventListener('click', () => {
@@ -1326,6 +1472,12 @@ function initApp() {
     }
   }
 
+  // Render pilihan chip/dropdown (status, jenis produk, dll) SEGERA
+  // pakai data cache/default — supaya form langsung bisa dipakai tanpa
+  // menunggu server. Ini harus jalan SEBELUM init sheet lain, supaya
+  // dropdown/chip sudah terisi saat sales pertama kali buka form.
+  safeInit('LookupRenderer (awal)', () => LookupRenderer.renderAll(LookupCache.get()));
+
   safeInit('Snackbar', () => Snackbar.init());
   safeInit('ThemeToggle', () => ThemeToggle.init());
   safeInit('Router', () => Router.init());
@@ -1334,6 +1486,14 @@ function initApp() {
   safeInit('AddProjectSheet', () => AddProjectSheet.init());
   safeInit('UpdateProgressSheet', () => UpdateProgressSheet.init());
   safeInit('FilterSheet', () => FilterSheet.init());
+
+  // Cek versi terbaru dari server di BACKGROUND (tidak memblokir apa pun).
+  // Kalau berhasil dan datanya berhasil dimuat, render ulang diam-diam —
+  // supaya perubahan di Google Sheets (tambah/kurang status, dll) langsung
+  // kepakai tanpa sales perlu tahu ada proses ini berjalan.
+  LookupCache.refresh().then((freshData) => {
+    if (freshData) LookupRenderer.renderAll(freshData);
+  });
 
   document.getElementById('header-title').textContent =
     'Halo, ' + SVS_CONFIG.SALES_NAME.split(' ')[0] + ' 👋';
