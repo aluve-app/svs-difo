@@ -289,28 +289,35 @@ h1, h2, h3, p { margin: 0; }
 }
 .icon-btn.icon-btn-subtle .icon { width: 17px; height: 17px; }
 
-/* Toggle switch tema — pil dengan bulatan geser, gaya iOS switch */
+/* Toggle switch tema — bulan & matahari SELALU tampil di track (kiri-kanan),
+   thumb polos bergeser menutupi salah satunya sesuai tema aktif. */
 .theme-switch {
   width: 46px;
   height: 26px;
   border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.18);
   position: relative;
-  padding: 3px;
-  display: flex;
-  align-items: center;
   flex-shrink: 0;
   transition: background var(--duration-base) var(--easing);
 }
+.theme-switch-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+.theme-switch-icon-moon { left: 5px; }
+.theme-switch-icon-sun { right: 5px; }
 .theme-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
   width: 20px;
   height: 20px;
   border-radius: var(--radius-full);
   background: #FFFFFF;
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transform: translateX(0);
   transition: transform var(--duration-base) var(--easing);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
@@ -639,6 +646,14 @@ h1, h2, h3, p { margin: 0; }
 }
 .chip-group.scroll-x::-webkit-scrollbar { display: none; }
 
+#summary-period-chips {
+  display: flex;
+}
+#summary-period-chips .chip {
+  flex: 1;
+  text-align: center;
+}
+
 .chip {
   padding: 8px 14px;
   border-radius: var(--radius-full);
@@ -649,8 +664,9 @@ h1, h2, h3, p { margin: 0; }
   white-space: nowrap;
   color: var(--color-text-primary);
   flex-shrink: 0;
-  transition: background var(--duration-fast) var(--easing), border-color var(--duration-fast) var(--easing), color var(--duration-fast) var(--easing);
+  transition: background var(--duration-fast) var(--easing), border-color var(--duration-fast) var(--easing), color var(--duration-fast) var(--easing), transform var(--duration-fast) var(--easing);
 }
+.chip:active { transform: scale(0.94); }
 .chip.selected {
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
@@ -959,6 +975,32 @@ h1, h2, h3, p { margin: 0; }
   align-items: center;
   justify-content: center;
   color: var(--color-text-tertiary);
+  position: relative;
+}
+.empty-state-badge-check {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-bg);
+}
+.empty-state-heading {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-top: var(--space-xs);
+}
+.empty-state-subtext {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  margin-top: -4px;
 }
 
 .loading-text {
