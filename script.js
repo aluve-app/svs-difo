@@ -497,8 +497,18 @@ const Api = {
    * penyimpanan lokal, bukan menunggu tanpa batas).
    */
   rawCall(action, payload) {
+    // requester_code/requester_token: identitas PEMANGGIL request ini,
+    // dipakai backend untuk validasi akses di SEMUA action (termasuk yang
+    // sifatnya baca data) — terpisah dari sales_code yang di beberapa
+    // action juga berfungsi sebagai FILTER data, bukan cuma identitas.
     const body = Object.assign(
-      { action, sales_code: SVS_CONFIG.SALES_CODE, token: SVS_CONFIG.TOKEN },
+      {
+        action,
+        sales_code: SVS_CONFIG.SALES_CODE,
+        token: SVS_CONFIG.TOKEN,
+        requester_code: SVS_CONFIG.SALES_CODE,
+        requester_token: SVS_CONFIG.TOKEN
+      },
       payload
     );
 
