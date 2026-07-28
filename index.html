@@ -237,6 +237,13 @@
         </div>
 
         <div class="form-group">
+          <label class="form-label" for="select-lead-source">Sumber Leads (opsional)</label>
+          <select id="select-lead-source" class="form-select">
+            <option value="">Sumber Leads (opsional)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label class="form-label">Info Kontak di Lokasi (opsional)</label>
           <input id="input-contact-name" class="form-input" type="text" placeholder="Nama kontak" />
         </div>
@@ -266,8 +273,8 @@
       <form id="form-update-progress" class="sheet-body">
 
         <div class="form-group">
-          <label class="form-label">Jenis Aktivitas *</label>
-          <div id="activity-type-grid" class="activity-type-grid"></div>
+          <label class="form-label" for="select-activity-type">Jenis Aktivitas *</label>
+          <select id="select-activity-type" class="form-select" required></select>
         </div>
 
         <div class="form-group">
