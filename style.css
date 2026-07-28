@@ -51,6 +51,12 @@
    1. DESIGN TOKENS
    ============================================================ */
 :root {
+  /* Lebar maksimum "shell" aplikasi — dipakai bersama oleh #app,
+     .bottom-nav, dan .fab supaya semuanya tetap sejajar & konsisten
+     di breakpoint mana pun. Nilainya di-override di bagian RESPONSIVE
+     paling bawah file ini untuk tablet & desktop. */
+  --app-max-width: 480px;
+
   /* Brand */
   --color-primary: #1E3A8A;
   --color-primary-hover: #162C69;
@@ -215,7 +221,7 @@ h1, h2, h3, p { margin: 0; }
 .icon-xs { width: 14px; height: 14px; }
 
 #app {
-  max-width: 480px;
+  max-width: var(--app-max-width);
   margin: 0 auto;
   min-height: 100%;
   position: relative;
@@ -397,7 +403,7 @@ h1, h2, h3, p { margin: 0; }
   bottom: 0;
   left: 0;
   right: 0;
-  max-width: 480px;
+  max-width: var(--app-max-width);
   margin: 0 auto;
   height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -425,7 +431,11 @@ h1, h2, h3, p { margin: 0; }
 .fab {
   position: fixed;
   left: auto;
-  right: var(--space-md);
+  /* Dihitung dari tepi KONTEN (bukan tepi layar mentah) — supaya di layar
+     lebar (tablet/desktop) FAB tetap menempel rapi di pojok kanan area
+     konten yang sudah di-center, bukan "terdampar" jauh di ujung kanan
+     layar fisik. */
+  right: calc(50vw - (var(--app-max-width) / 2) + var(--space-md));
   bottom: calc(var(--bottom-nav-height) + var(--space-md) + env(safe-area-inset-bottom, 0px));
   width: 56px;
   height: 56px;
@@ -467,6 +477,15 @@ h1, h2, h3, p { margin: 0; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-sm);
+}
+/* PENTING: karena #project-list adalah GRID 2 kolom, elemen loading
+   (spinner) harus di-set span PENUH (1 / -1) — kalau tidak, dia cuma
+   mengisi 1 sel grid pertama dan jadi kelihatan "nempel di pinggir kiri"
+   alih-alih center di tengah halaman. */
+#project-list .loading-container,
+.card-list .loading-container {
+  grid-column: 1 / -1;
+  width: 100%;
 }
 #project-list .card {
   text-align: center;
@@ -836,31 +855,6 @@ h1, h2, h3, p { margin: 0; }
 }
 
 /* Activity type grid */
-.activity-type-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-sm);
-}
-.activity-type-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: var(--space-sm) 4px;
-  border-radius: var(--radius-md);
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  font-size: 11px;
-  font-weight: 500;
-  text-align: center;
-  color: var(--color-text-secondary);
-}
-.activity-type-btn.selected {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
 .photo-source-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1040,6 +1034,30 @@ h1, h2, h3, p { margin: 0; }
   padding: var(--space-lg) 0;
 }
 
+/* Loading spinner — lingkaran berputar + teks, dipakai saat Home &
+   Project List pertama kali memuat data (konsisten dengan Manager
+   Dashboard) */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-xl) 0;
+}
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  border: 4px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-right-color: var(--color-primary);
+  animation: svs-spin 0.7s linear infinite;
+}
+@keyframes svs-spin {
+  to { transform: rotate(360deg); }
+}
+
 .contact-list { margin-top: var(--space-sm); }
 .contact-item {
   padding: var(--space-sm) 0;
@@ -1124,6 +1142,42 @@ h1, h2, h3, p { margin: 0; }
 @media (min-width: 600px) {
   #app { box-shadow: var(--shadow-elevated); min-height: 100vh; }
   body { background: var(--color-surface-alt); }
+}
+
+/* ---------- TABLET (700px ke atas) ----------
+   Aplikasi ini akan berkembang jadi dipakai juga oleh tim office
+   (CRM), bukan cuma sales lapangan — jadi mulai titik ini, layout
+   memanfaatkan ruang layar yang lebih lebar, bukan sekadar tampil
+   sebagai kolom sempit di tengah layar besar. */
+@media (min-width: 700px) {
+  :root { --app-max-width: 700px; }
+
+  #project-list { grid-template-columns: repeat(3, 1fr); }
+
+  /* Follow Up & Ringkasan Detail ikut memanfaatkan lebar tambahan */
+  #followup-list.card-list,
+  #summary-detail-list.card-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+
+  .kpi-grid, .summary-grid { grid-template-columns: repeat(3, 1fr); }
+
+  /* Sheet form sedikit lebih lega, tidak perlu selebar konten utama */
+  .bottom-sheet { max-width: 560px; }
+}
+
+/* ---------- DESKTOP (1100px ke atas) ---------- */
+@media (min-width: 1100px) {
+  :root { --app-max-width: 1100px; }
+
+  #project-list { grid-template-columns: repeat(4, 1fr); }
+
+  #followup-list.card-list,
+  #summary-detail-list.card-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
