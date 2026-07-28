@@ -127,7 +127,8 @@ const LookupCache = {
     Pipeline_Stage: ['New Visit', 'Qualified', 'Quotation Sent', 'Negotiation', 'Won', 'Lost'],
     Product_Type: ['Kusen Aluminium', 'Pintu Aluminium', 'Jendela Aluminium', 'Curtain Wall', 'Railing', 'ACP', 'Facade'],
     Lost_Reason: ['Kalah Harga', 'Kalah Kompetitor', 'Proyek Batal', 'Spek Tidak Cocok'],
-    Contact_Role: ['Owner', 'Developer', 'Kontraktor', 'Konsultan', 'Arsitek', 'Mandor', 'Project Manager', 'Purchasing']
+    Contact_Role: ['Owner', 'Developer', 'Kontraktor', 'Konsultan', 'Arsitek', 'Mandor', 'Project Manager', 'Purchasing'],
+    Lead_Source: ['Canvasing', 'Google Ads', 'Meta Ads', 'Website', 'Social Media', 'Event']
   },
 
   get() {
@@ -161,36 +162,28 @@ const LookupCache = {
    di background berhasil dapat data lebih baru.
    ============================================================ */
 const LookupRenderer = {
-  // Ikon per Jenis Aktivitas yang sudah dikenal — kalau ada nama baru
-  // ditambahkan lewat sheet yang tidak ada di daftar ini, otomatis
-  // pakai ikon fallback generik supaya tetap tampil rapi.
-  ACTIVITY_ICONS: {
-    'Visit': Icons.pin,
-    'Follow Up': '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
-    'Kirim Penawaran': '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
-    'Deal Update': '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
-  },
-  ACTIVITY_ICON_FALLBACK: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>',
-
   renderAll(data) {
-    this.renderActivityTypeGrid(data.Activity_Type || []);
+    this.renderActivityTypeSelect(data.Activity_Type || []);
     this.renderPipelineStageSelect(data.Pipeline_Stage || []);
     this.renderProductTypeChips(data.Product_Type || []);
     this.renderLostReasonChips(data.Lost_Reason || []);
     this.renderContactRoleSelect(data.Contact_Role || []);
+    this.renderLeadSourceSelect(data.Lead_Source || []);
     this.renderFilterStageChips(data.Pipeline_Stage || []);
     this.renderFilterProductChips(data.Product_Type || []);
   },
 
-  renderActivityTypeGrid(types) {
-    const container = document.getElementById('activity-type-grid');
-    const currentSelection = State.selectedActivityType;
-    container.innerHTML = types.map((type) => {
-      const icon = this.ACTIVITY_ICONS[type] || this.ACTIVITY_ICON_FALLBACK;
-      const selectedClass = type === currentSelection ? ' selected' : '';
-      return '<button class="activity-type-btn' + selectedClass + '" type="button" data-activity-type="' + type + '">' +
-        icon + '<span>' + type + '</span></button>';
-    }).join('');
+  /**
+   * Jenis Aktivitas sekarang jadi dropdown scroll biasa (bukan grid ikon) —
+   * supaya menambah jenis aktivitas baru lewat sheet Lookup langsung
+   * muncul rapi tanpa perlu saya siapkan ikon baru tiap kali.
+   */
+  renderActivityTypeSelect(types) {
+    const select = document.getElementById('select-activity-type');
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">Pilih Jenis Aktivitas</option>' +
+      types.map((t) => '<option value="' + t + '">' + t + '</option>').join('');
+    if (types.includes(currentValue)) select.value = currentValue;
   },
 
   renderPipelineStageSelect(stages) {
@@ -222,6 +215,18 @@ const LookupRenderer = {
     select.innerHTML = '<option value="">Role Kontak (opsional)</option>' +
       roles.map((r) => '<option value="' + r + '">' + r + '</option>').join('');
     if (roles.includes(currentValue)) select.value = currentValue;
+  },
+
+  /**
+   * Sumber Leads — dropdown scroll opsional, sumbernya dari kolom
+   * "Lead_Source" di sheet Lookup (tambah kolom itu kalau belum ada).
+   */
+  renderLeadSourceSelect(sources) {
+    const select = document.getElementById('select-lead-source');
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">Sumber Leads (opsional)</option>' +
+      sources.map((s) => '<option value="' + s + '">' + s + '</option>').join('');
+    if (sources.includes(currentValue)) select.value = currentValue;
   },
 
   renderFilterStageChips(stages) {
@@ -661,11 +666,18 @@ const ThemeToggle = {
    ============================================================ */
 const DashboardView = {
   async load() {
+    const followupEl = document.getElementById('followup-list');
+    followupEl.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p class="loading-container-text">Memuat data</p></div>';
+    LoadingIndicator.start(followupEl.querySelector('.loading-container-text'), 'Memuat data');
+
     const payload = SVS_CONFIG.ROLE === 'manager' ? {} : { sales_code: SVS_CONFIG.SALES_CODE };
     const result = await Api.call('readDashboard', payload, { noQueue: true }).catch(() => null);
 
+    LoadingIndicator.stop();
+
     if (!result || !result.success) {
       Snackbar.show('Gagal memuat dashboard. Menampilkan data terakhir yang tersimpan.', 'error');
+      followupEl.innerHTML = '<p class="empty-state">Gagal memuat data. Coba refresh halaman.</p>';
       return;
     }
 
@@ -785,6 +797,10 @@ const DashboardView = {
    ============================================================ */
 const ProjectListView = {
   async load() {
+    const listEl = document.getElementById('project-list');
+    listEl.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p class="loading-container-text">Memuat project</p></div>';
+    LoadingIndicator.start(listEl.querySelector('.loading-container-text'), 'Memuat project');
+
     const payload = {
       sales_code: SVS_CONFIG.ROLE === 'manager' ? undefined : SVS_CONFIG.SALES_CODE,
       pipeline_stage: State.filterStage || undefined,
@@ -792,8 +808,11 @@ const ProjectListView = {
     };
 
     const result = await Api.call('filterProject', payload, { noQueue: true }).catch(() => null);
+    LoadingIndicator.stop();
+
     if (!result || !result.success) {
       Snackbar.show('Gagal memuat daftar project', 'error');
+      listEl.innerHTML = '<p class="empty-state">Gagal memuat data. Coba refresh halaman.</p>';
       return;
     }
 
@@ -1104,7 +1123,8 @@ const AddProjectSheet = {
       product_type: State.selectedProductTypes.join(', '),
       project_category: document.getElementById('select-project-category').value,
       construction_stage: document.getElementById('select-construction-stage').value,
-      estimated_value: document.getElementById('input-project-value').value || ''
+      estimated_value: document.getElementById('input-project-value').value || '',
+      lead_source: document.getElementById('select-lead-source').value || ''
     };
 
     // Tambahkan langsung ke tampilan lokal (optimistic) — supaya project
@@ -1169,15 +1189,9 @@ const AddProjectSheet = {
    ============================================================ */
 const UpdateProgressSheet = {
   init() {
-    // Event delegation: tombol Jenis Aktivitas & chip Alasan Lost sekarang
-    // dibuat dinamis dari sheet Lookup, jadi listener dipasang di
-    // KONTAINER-nya, bukan per-elemen.
-    document.getElementById('activity-type-grid').addEventListener('click', (e) => {
-      const btn = e.target.closest('.activity-type-btn');
-      if (!btn) return;
-      document.querySelectorAll('#activity-type-grid .activity-type-btn').forEach((b) => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      State.selectedActivityType = btn.dataset.activityType;
+    // Jenis Aktivitas sekarang dropdown biasa — cukup dengar event 'change'
+    document.getElementById('select-activity-type').addEventListener('change', (e) => {
+      State.selectedActivityType = e.target.value;
     });
 
     document.getElementById('btn-take-photo').addEventListener('click', () => {
@@ -1261,7 +1275,6 @@ const UpdateProgressSheet = {
     document.getElementById('update-progress-project-name').textContent = projectName;
     this.renderPhotoThumbnails();
     document.getElementById('lost-reason-group').hidden = true;
-    document.querySelectorAll('#activity-type-grid .activity-type-btn').forEach((b) => b.classList.remove('selected'));
     document.querySelectorAll('#lost-reason-chips .chip').forEach((c) => c.classList.remove('selected'));
     document.querySelectorAll('#followup-quick-chips .chip').forEach((c) => c.classList.remove('selected'));
 
