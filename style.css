@@ -431,11 +431,9 @@ h1, h2, h3, p { margin: 0; }
 .fab {
   position: fixed;
   left: auto;
-  /* Dihitung dari tepi KONTEN (bukan tepi layar mentah) — supaya di layar
-     lebar (tablet/desktop) FAB tetap menempel rapi di pojok kanan area
-     konten yang sudah di-center, bukan "terdampar" jauh di ujung kanan
-     layar fisik. */
-  right: calc(50vw - (var(--app-max-width) / 2) + var(--space-md));
+  /* Default (HP): posisi sederhana relatif ke tepi layar — aman untuk
+     semua ukuran HP asli (jauh lebih sempit dari --app-max-width). */
+  right: var(--space-md);
   bottom: calc(var(--bottom-nav-height) + var(--space-md) + env(safe-area-inset-bottom, 0px));
   width: 56px;
   height: 56px;
@@ -1166,6 +1164,11 @@ h1, h2, h3, p { margin: 0; }
 
   /* Sheet form sedikit lebih lega, tidak perlu selebar konten utama */
   .bottom-sheet { max-width: 560px; }
+
+  /* Mulai breakpoint ini, viewport DIJAMIN >= --app-max-width (karena
+     breakpoint-nya sama dengan nilai --app-max-width baru), jadi aman
+     pakai rumus relatif-ke-tepi-konten — tidak akan pernah minus. */
+  .fab { right: calc(50vw - (var(--app-max-width) / 2) + var(--space-md)); }
 }
 
 /* ---------- DESKTOP (1100px ke atas) ---------- */
