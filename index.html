@@ -205,14 +205,14 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Jenis Produk * (pilih min. 1)</label>
-          <div id="product-type-chips" class="chip-group wrap"></div>
+          <label class="form-label" for="select-activity-type-new">Jenis Aktivitas *</label>
+          <select id="select-activity-type-new" class="form-select" required></select>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="select-project-category">Jenis Project</label>
-          <select id="select-project-category" class="form-select">
-            <option value="">Pilih (opsional)</option>
+          <label class="form-label" for="select-project-category">Jenis Project *</label>
+          <select id="select-project-category" class="form-select" required>
+            <option value="">Pilih</option>
             <option value="Rumah">Rumah</option>
             <option value="Ruko">Ruko</option>
             <option value="Apartemen">Apartemen</option>
@@ -222,24 +222,17 @@
         </div>
 
         <div class="form-group">
+          <label class="form-label">Jenis Produk * (pilih min. 1)</label>
+          <div id="product-type-chips" class="chip-group wrap"></div>
+        </div>
+
+        <div class="form-group">
           <label class="form-label" for="select-construction-stage">Tahap Konstruksi</label>
           <select id="select-construction-stage" class="form-select">
             <option value="">Pilih (opsional)</option>
             <option value="Pondasi">Pondasi</option>
             <option value="Dinding">Dinding</option>
             <option value="Finishing">Finishing</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="input-project-value">Estimasi Nilai Project (opsional)</label>
-          <input id="input-project-value" class="form-input" type="number" inputmode="numeric" placeholder="Contoh: 25000000" min="0" />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="select-lead-source">Sumber Leads (opsional)</label>
-          <select id="select-lead-source" class="form-select">
-            <option value="">Sumber Leads (opsional)</option>
           </select>
         </div>
 
@@ -254,6 +247,35 @@
           <select id="select-contact-role" class="form-select">
             <option value="">Role Kontak (opsional)</option>
           </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-lead-source">Sumber Leads *</label>
+          <select id="select-lead-source" class="form-select" required>
+            <option value="">Pilih</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Foto Kunjungan * (boleh lebih dari 1)</label>
+          <input id="input-photo-newproject" type="file" accept="image/*" capture="environment" hidden />
+          <input id="input-gallery-newproject" type="file" accept="image/*" multiple hidden />
+          <div class="photo-source-buttons">
+            <button id="btn-take-photo-newproject" class="secondary-button ripple" type="button">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Ambil Foto
+            </button>
+            <button id="btn-pick-gallery-newproject" class="secondary-button ripple" type="button">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Galeri
+            </button>
+          </div>
+          <div id="photo-thumbnail-list-newproject" class="photo-thumbnail-list"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-activity-note-new">Catatan Kunjungan *</label>
+          <textarea id="input-activity-note-new" class="form-textarea" rows="4" placeholder="Contoh: Survei lokasi & perkenalan produk" required></textarea>
         </div>
 
         <button type="submit" class="primary-button ripple full-width">SIMPAN PROJECT</button>
@@ -278,7 +300,26 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Foto Kunjungan (opsional, boleh lebih dari 1)</label>
+          <label class="form-label" for="select-pipeline-stage">Status Pipeline *</label>
+          <select id="select-pipeline-stage" class="form-select" required></select>
+        </div>
+
+        <div id="lost-reason-group" class="form-group" hidden>
+          <label class="form-label">
+            <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Alasan Lost *
+          </label>
+          <div id="lost-reason-chips" class="chip-group wrap"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-estimated-value">Estimasi Nilai Project (opsional)</label>
+          <input id="input-estimated-value" class="form-input" type="number" inputmode="numeric" placeholder="Contoh: 25000000" min="0" />
+          <p class="form-hint">Isi kalau sudah tahu perkiraan nilainya. Boleh dikosongkan dan diisi/diperbarui belakangan.</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Foto Update (opsional, boleh lebih dari 1)</label>
           <input id="input-photo" type="file" accept="image/*" capture="environment" hidden />
           <input id="input-gallery" type="file" accept="image/*" multiple hidden />
           <div class="photo-source-buttons">
@@ -300,25 +341,6 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="select-pipeline-stage">Status Project Saat Ini *</label>
-          <select id="select-pipeline-stage" class="form-select" required></select>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="input-estimated-value">Estimasi Nilai Project (opsional)</label>
-          <input id="input-estimated-value" class="form-input" type="number" inputmode="numeric" placeholder="Contoh: 25000000" min="0" />
-          <p class="form-hint">Isi kalau sudah tahu perkiraan nilainya. Boleh dikosongkan dan diisi/diperbarui belakangan.</p>
-        </div>
-
-        <div id="lost-reason-group" class="form-group" hidden>
-          <label class="form-label">
-            <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            Alasan Lost *
-          </label>
-          <div id="lost-reason-chips" class="chip-group wrap"></div>
-        </div>
-
-        <div class="form-group">
           <label class="form-label">Follow Up Berikutnya *</label>
           <div id="followup-quick-chips" class="chip-group wrap">
             <button class="chip" type="button" data-followup-days="1">Besok</button>
@@ -326,6 +348,24 @@
             <button class="chip" type="button" data-followup-days="7">1 Minggu</button>
           </div>
           <input id="input-followup-date" class="form-input" type="date" />
+        </div>
+
+        <!-- Hanya ditampilkan kalau project ini BELUM punya kontak
+             tersimpan sama sekali — supaya tidak menanyakan hal yang
+             sama berulang-ulang di setiap kunjungan berikutnya. -->
+        <div id="update-progress-contact-group" hidden>
+          <div class="form-group">
+            <label class="form-label">Info Kontak di Lokasi (opsional, belum pernah diisi)</label>
+            <input id="input-contact-name-update" class="form-input" type="text" placeholder="Nama kontak" />
+          </div>
+          <div class="form-group">
+            <input id="input-contact-phone-update" class="form-input" type="tel" placeholder="No. Telepon/WA" />
+          </div>
+          <div class="form-group">
+            <select id="select-contact-role-update" class="form-select">
+              <option value="">Role Kontak (opsional)</option>
+            </select>
+          </div>
         </div>
 
         <button type="submit" class="primary-button ripple full-width">SIMPAN</button>
