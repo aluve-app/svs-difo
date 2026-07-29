@@ -40,6 +40,7 @@ const State = {
   selectedLostReason: null,
   selectedFollowupDate: null,
   pendingPhotos: [],         // array of { base64, mimeType, previewUrl } — foto opsional, boleh lebih dari 1
+  pendingPhotosNewProject: [], // sama seperti di atas, tapi khusus form Tambah Project (foto kunjungan wajib)
 
   quickFilter: 'Semua',
   filterStage: '',
@@ -119,6 +120,31 @@ const Icons = {
       pertama kali buka jelek), pakai DEFAULTS di bawah supaya
       aplikasi tetap bisa dipakai, tidak pernah kosong total.
    ============================================================ */
+/* ============================================================
+   1c-2. DASHBOARD CACHE — simpan hasil Home (readDashboard) di
+   localStorage supaya kunjungan BERIKUTNYA langsung tampil instan dari
+   data lama, sambil diam-diam ambil data terbaru di belakang layar.
+   Pola sama persis dengan cache Overview di Manager Dashboard.
+   ============================================================ */
+const DashboardCache = {
+  STORAGE_KEY: 'svs_dashboard_cache_v1',
+
+  save(data) {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify({ data, savedAt: Date.now() }));
+    } catch (e) { /* localStorage penuh/diblokir — abaikan, tidak fatal */ }
+  },
+
+  get() {
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+};
+
 const LookupCache = {
   STORAGE_KEY: 'svs_lookup_options',
 
@@ -184,6 +210,15 @@ const LookupRenderer = {
     select.innerHTML = '<option value="">Pilih Jenis Aktivitas</option>' +
       types.map((t) => '<option value="' + t + '">' + t + '</option>').join('');
     if (types.includes(currentValue)) select.value = currentValue;
+
+    // Dropdown yang sama juga dipakai di form Tambah Project — default
+    // ke "Visit" kalau ada, karena kunjungan pertama ke project baru
+    // hampir selalu jenisnya Visit.
+    const selectNew = document.getElementById('select-activity-type-new');
+    if (selectNew) {
+      selectNew.innerHTML = types.map((t) => '<option value="' + t + '">' + t + '</option>').join('');
+      if (types.includes('Visit')) selectNew.value = 'Visit';
+    }
   },
 
   renderPipelineStageSelect(stages) {
@@ -215,6 +250,13 @@ const LookupRenderer = {
     select.innerHTML = '<option value="">Role Kontak (opsional)</option>' +
       roles.map((r) => '<option value="' + r + '">' + r + '</option>').join('');
     if (roles.includes(currentValue)) select.value = currentValue;
+
+    // Dropdown role kontak versi "susulan" di Catat Aktivitas — sumbernya sama
+    const selectUpdate = document.getElementById('select-contact-role-update');
+    if (selectUpdate) {
+      selectUpdate.innerHTML = '<option value="">Role Kontak (opsional)</option>' +
+        roles.map((r) => '<option value="' + r + '">' + r + '</option>').join('');
+    }
   },
 
   /**
@@ -224,7 +266,7 @@ const LookupRenderer = {
   renderLeadSourceSelect(sources) {
     const select = document.getElementById('select-lead-source');
     const currentValue = select.value;
-    select.innerHTML = '<option value="">Sumber Leads (opsional)</option>' +
+    select.innerHTML = '<option value="">Pilih</option>' +
       sources.map((s) => '<option value="' + s + '">' + s + '</option>').join('');
     if (sources.includes(currentValue)) select.value = currentValue;
   },
@@ -667,17 +709,32 @@ const ThemeToggle = {
 const DashboardView = {
   async load() {
     const followupEl = document.getElementById('followup-list');
-    followupEl.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p class="loading-container-text">Memuat data</p></div>';
-    LoadingIndicator.start(followupEl.querySelector('.loading-container-text'), 'Memuat data');
+    const cached = DashboardCache.get();
+
+    if (cached) {
+      // Tampilkan data lama SEKARANG JUGA — instan, tanpa spinner —
+      // sambil diam-diam ambil data terbaru di belakang layar.
+      this.renderFollowUps(cached.data.needs_followup || []);
+      State.summaryData = cached.data.summary || { today: {}, week: {}, month: {} };
+      this.renderSummary(State.selectedSummaryPeriod);
+      this.updateNotificationBadge(cached.data.needs_followup || []);
+    } else {
+      followupEl.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p class="loading-container-text">Memuat data</p></div>';
+      LoadingIndicator.start(followupEl.querySelector('.loading-container-text'), 'Memuat data');
+    }
 
     const payload = SVS_CONFIG.ROLE === 'manager' ? {} : { sales_code: SVS_CONFIG.SALES_CODE };
     const result = await Api.call('readDashboard', payload, { noQueue: true }).catch(() => null);
 
-    LoadingIndicator.stop();
+    if (!cached) LoadingIndicator.stop();
 
     if (!result || !result.success) {
-      Snackbar.show('Gagal memuat dashboard. Menampilkan data terakhir yang tersimpan.', 'error');
-      followupEl.innerHTML = '<p class="empty-state">Gagal memuat data. Coba refresh halaman.</p>';
+      if (!cached) {
+        Snackbar.show('Gagal memuat dashboard. Menampilkan data terakhir yang tersimpan.', 'error');
+        followupEl.innerHTML = '<p class="empty-state">Gagal memuat data. Coba refresh halaman.</p>';
+      }
+      // Kalau ada cache, tampilan lama dibiarkan apa adanya — lebih baik
+      // data agak basi daripada tiba-tiba kosong.
       return;
     }
 
@@ -685,6 +742,7 @@ const DashboardView = {
     State.summaryData = result.data.summary || { today: {}, week: {}, month: {} };
     this.renderSummary(State.selectedSummaryPeriod);
     this.updateNotificationBadge(result.data.needs_followup || []);
+    DashboardCache.save(result.data);
   },
 
   init() {
@@ -807,7 +865,13 @@ const ProjectListView = {
       product_type: State.filterProduct || undefined
     };
 
-    const result = await Api.call('filterProject', payload, { noQueue: true }).catch(() => null);
+    // filterProject & readContactsSummary tidak saling bergantung — jalankan
+    // BERSAMAAN, bukan tunggu satu-satu, supaya total waktu tunggu = yang
+    // paling lambat dari keduanya, bukan jumlah keduanya.
+    const [result, contactsResult] = await Promise.all([
+      Api.call('filterProject', payload, { noQueue: true }).catch(() => null),
+      Api.call('readContactsSummary', {}, { noQueue: true }).catch(() => null)
+    ]);
     LoadingIndicator.stop();
 
     if (!result || !result.success) {
@@ -816,11 +880,6 @@ const ProjectListView = {
       return;
     }
 
-    // Ambil ringkasan kontak (nama+role) untuk semua project sekaligus,
-    // supaya kartu bisa tampilkan siapa kontak di lokasi tanpa 1 request
-    // terpisah per project. Kalau gagal, tidak fatal — kartu cukup tanpa
-    // info kontak.
-    const contactsResult = await Api.call('readContactsSummary', {}, { noQueue: true }).catch(() => null);
     State.contactsSummary = (contactsResult && contactsResult.success) ? contactsResult.data : {};
 
     const serverProjects = result.data || [];
@@ -1089,6 +1148,29 @@ const AddProjectSheet = {
       }
     });
 
+    document.getElementById('btn-take-photo-newproject').addEventListener('click', () => {
+      document.getElementById('input-photo-newproject').click();
+    });
+    document.getElementById('btn-pick-gallery-newproject').addEventListener('click', () => {
+      document.getElementById('input-gallery-newproject').click();
+    });
+
+    const handlePhotoFilesNewProject = async (e) => {
+      const files = Array.from(e.target.files || []);
+      for (const file of files) {
+        try {
+          const { base64, mimeType, previewUrl } = await Utils.compressAndReadImage(file);
+          State.pendingPhotosNewProject.push({ base64, mimeType, previewUrl });
+        } catch (err) {
+          Snackbar.show('Gagal memproses salah satu foto, dilewati', 'error');
+        }
+      }
+      this.renderPhotoThumbnails();
+      e.target.value = '';
+    };
+    document.getElementById('input-photo-newproject').addEventListener('change', handlePhotoFilesNewProject);
+    document.getElementById('input-gallery-newproject').addEventListener('change', handlePhotoFilesNewProject);
+
     document.getElementById('form-add-project').addEventListener('submit', (e) => {
       e.preventDefault();
       this.submit();
@@ -1097,44 +1179,128 @@ const AddProjectSheet = {
 
   open() {
     State.selectedProductTypes = [];
+    State.pendingPhotosNewProject = [];
     document.getElementById('form-add-project').reset();
     document.querySelectorAll('#product-type-chips .chip').forEach((c) => c.classList.remove('selected'));
+    this.renderPhotoThumbnails();
+
+    // Default Jenis Aktivitas ke "Visit" tiap kali form dibuka — kunjungan
+    // pertama ke project baru hampir selalu jenisnya Visit.
+    const activityTypeNew = document.getElementById('select-activity-type-new');
+    if ([...activityTypeNew.options].some((o) => o.value === 'Visit')) {
+      activityTypeNew.value = 'Visit';
+    }
 
     SheetManager.open('sheet-add-project');
+  },
+
+  /** Menampilkan ulang thumbnail foto form Tambah Project, dengan tombol hapus per foto */
+  renderPhotoThumbnails() {
+    const container = document.getElementById('photo-thumbnail-list-newproject');
+    container.innerHTML = '';
+
+    State.pendingPhotosNewProject.forEach((photo, index) => {
+      const item = document.createElement('div');
+      item.className = 'photo-thumbnail-item';
+      item.innerHTML =
+        '<img src="' + photo.previewUrl + '" alt="Foto kunjungan ' + (index + 1) + '" />' +
+        '<button type="button" class="photo-thumbnail-remove" data-remove-photo-index="' + index + '">✕</button>';
+      container.appendChild(item);
+    });
+
+    container.querySelectorAll('[data-remove-photo-index]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.removePhotoIndex, 10);
+        State.pendingPhotosNewProject.splice(idx, 1);
+        this.renderPhotoThumbnails();
+      });
+    });
   },
 
   async submit() {
     const name = document.getElementById('input-project-name').value.trim();
     const address = document.getElementById('input-project-address').value.trim();
+    const activityType = document.getElementById('select-activity-type-new').value;
+    const projectCategory = document.getElementById('select-project-category').value;
+    const leadSource = document.getElementById('select-lead-source').value;
+    const note = document.getElementById('input-activity-note-new').value.trim();
 
     if (!name || !address) {
       Snackbar.show('Nama project dan lokasi wajib diisi', 'error');
+      return;
+    }
+    if (!activityType) {
+      Snackbar.show('Pilih jenis aktivitas terlebih dahulu', 'error');
+      return;
+    }
+    if (!projectCategory) {
+      Snackbar.show('Pilih jenis project terlebih dahulu', 'error');
       return;
     }
     if (State.selectedProductTypes.length === 0) {
       Snackbar.show('Pilih minimal 1 jenis produk', 'error');
       return;
     }
+    if (!leadSource) {
+      Snackbar.show('Pilih sumber leads terlebih dahulu', 'error');
+      return;
+    }
+    if (State.pendingPhotosNewProject.length === 0) {
+      Snackbar.show('Foto kunjungan wajib diisi minimal 1', 'error');
+      return;
+    }
+    if (!note) {
+      Snackbar.show('Catatan kunjungan wajib diisi', 'error');
+      return;
+    }
 
-    const payload = {
-      project_id: IdGen.projectId(),
+    const projectId = IdGen.projectId();
+    const activityId = IdGen.activityId();
+    const photoAssignments = State.pendingPhotosNewProject.map((p) => ({
+      photoId: IdGen.photoId(),
+      base64: p.base64,
+      mimeType: p.mimeType
+    }));
+
+    const projectPayload = {
+      project_id: projectId,
       project_name: name,
       location_address: address,
       product_type: State.selectedProductTypes.join(', '),
-      project_category: document.getElementById('select-project-category').value,
+      project_category: projectCategory,
       construction_stage: document.getElementById('select-construction-stage').value,
-      estimated_value: document.getElementById('input-project-value').value || '',
-      lead_source: document.getElementById('select-lead-source').value || ''
+      lead_source: leadSource
     };
+
+    const defaultFollowupDate = new Date();
+    defaultFollowupDate.setDate(defaultFollowupDate.getDate() + 3);
+
+    const activityPayload = {
+      activity_id: activityId,
+      project_id: projectId,
+      activity_type: activityType,
+      activity_note: note,
+      pipeline_stage: 'New Visit',
+      // Follow up itu WAJIB diisi menurut backend untuk semua aktivitas
+      // (bukan cuma di Catat Aktivitas) — karena form Tambah Project ini
+      // sengaja tidak menanyakan tanggal follow up ke sales (biar tidak
+      // kepanjangan formnya), default-nya 3 hari dari sekarang.
+      next_followup_date: Utils.formatDateForInput(defaultFollowupDate),
+      photo_ids: photoAssignments.map((p) => p.photoId)
+    };
+
+    const contactName = document.getElementById('input-contact-name').value.trim();
+    const contactPhone = document.getElementById('input-contact-phone').value.trim();
+    const contactRole = document.getElementById('select-contact-role').value;
 
     // Tambahkan langsung ke tampilan lokal (optimistic) — supaya project
     // baru langsung terlihat di "Project Saya" walau server belum sempat
     // mengonfirmasi. Ditandai _pendingSync sampai server benar-benar merespons.
     State.projectsCache.unshift({
-      Project_ID: payload.project_id,
-      Project_Name: payload.project_name,
-      Location_Address: payload.location_address,
-      Product_Type: payload.product_type,
+      Project_ID: projectId,
+      Project_Name: name,
+      Location_Address: address,
+      Product_Type: projectPayload.product_type,
       Pipeline_Stage: 'New Visit',
       Estimated_Value: '',
       Health_Status: 'Aktif',
@@ -1143,43 +1309,57 @@ const AddProjectSheet = {
     });
 
     SheetManager.close('sheet-add-project');
-
-    // Sesuai alur di UI/UX Design: setelah project baru dibuat, otomatis
-    // lanjut ke Update Progress untuk kunjungan pertama. Ini dilakukan
-    // SEGERA (tidak menunggu balasan server) karena project_id sudah pasti
-    // dibuat di atas — request ke server dikirim di belakang layar.
-    State.currentProjectStage = 'New Visit';
-    UpdateProgressSheet.open(payload.project_id, name, 'New Visit');
     Router.refreshCurrentView();
+    Snackbar.showPersistent('Menyimpan...');
 
-    Api.call('createProject', payload).then((result) => {
-      if (!result.success && !result.queued) {
-        Snackbar.show(result.message || 'Gagal menyimpan project ke server', 'error');
+    // PENTING — urutan di bawah ini SENGAJA berurutan (menunggu satu
+    // selesai baru lanjut), BUKAN dikirim bersamaan. Kalau dikirim
+    // bersamaan, createActivity/createContact bisa sampai ke server LEBIH
+    // DULU dari createProject dan ditolak karena project-nya "belum ada"
+    // dari sudut pandang server — ini penyebab bug "gagal simpan info
+    // kontak" yang pernah terjadi.
+    try {
+      await Api.call('createProject', projectPayload);
+
+      for (const photo of photoAssignments) {
+        await Api.rawCall('uploadPhoto', {
+          photo_id: photo.photoId,
+          project_id: projectId,
+          file_base64: photo.base64,
+          mime_type: photo.mimeType
+        });
       }
-      // Kalau berhasil ATAU sudah masuk antrian offline, tidak perlu
-      // notifikasi tambahan — sales sudah lihat project-nya sejak tadi.
-    });
 
-    // Info kontak bersifat OPSIONAL — kalau salah satu field diisi,
-    // kirim sebagai request terpisah (tidak menghalangi alur utama project).
-    const contactName = document.getElementById('input-contact-name').value.trim();
-    const contactPhone = document.getElementById('input-contact-phone').value.trim();
-    const contactRole = document.getElementById('select-contact-role').value;
+      const activityResult = await Api.rawCall('createActivity', activityPayload);
+      if (!activityResult.success) {
+        Snackbar.show(activityResult.message || 'Gagal menyimpan aktivitas pertama', 'error');
+      }
 
-    if (contactName && contactPhone && contactRole) {
-      Api.call('createContact', {
-        contact_id: IdGen.contactId(),
-        project_id: payload.project_id,
-        contact_name: contactName,
-        phone_number: contactPhone,
-        role: contactRole
-      }).then((result) => {
-        if (!result.success && !result.queued) {
-          Snackbar.show('Gagal menyimpan info kontak: ' + (result.message || ''), 'error');
+      if (contactName && contactPhone && contactRole) {
+        const contactResult = await Api.call('createContact', {
+          contact_id: IdGen.contactId(),
+          project_id: projectId,
+          contact_name: contactName,
+          phone_number: contactPhone,
+          role: contactRole
+        });
+        if (!contactResult.success && !contactResult.queued) {
+          Snackbar.show('Gagal menyimpan info kontak: ' + (contactResult.message || ''), 'error');
         }
-      });
-    } else if (contactName || contactPhone || contactRole) {
-      Snackbar.show('Info kontak tidak disimpan — Nama, Telepon, dan Role harus diisi semua kalau ingin mencatat kontak', 'info');
+      } else if (contactName || contactPhone || contactRole) {
+        Snackbar.show('Info kontak tidak disimpan — Nama, Telepon, dan Role harus diisi semua kalau ingin mencatat kontak', 'info');
+      }
+
+      Snackbar.show('Project baru tersimpan', 'success');
+      Router.refreshCurrentView();
+    } catch (networkError) {
+      // Jaringan gagal/lambat di tahap foto/aktivitas (createProject
+      // sendiri sudah otomatis antre lewat Api.call kalau gagal) — simpan
+      // paket aktivitas+foto sebagai satu kesatuan ke antrian lokal,
+      // supaya urutan sync belakangan tetap benar (project dulu, baru ini).
+      OfflineQueue.addActivityWithPhotos(activityPayload, photoAssignments);
+      Snackbar.show('Tersimpan lokal — akan dikirim otomatis saat online', 'info');
+      Router.refreshCurrentView();
     }
   }
 };
@@ -1282,6 +1462,13 @@ const UpdateProgressSheet = {
       document.getElementById('select-pipeline-stage').value = currentStage;
     }
 
+    // Tampilkan form "Info Kontak" HANYA kalau project ini belum pernah
+    // punya kontak tersimpan — supaya tidak menanyakan hal yang sama
+    // berulang di setiap kunjungan. State.contactsSummary diisi dari
+    // Project List (readContactsSummary), jadi datanya sudah tersedia.
+    const hasContact = !!(State.contactsSummary && State.contactsSummary[projectId]);
+    document.getElementById('update-progress-contact-group').hidden = hasContact;
+
     SheetManager.open('sheet-update-progress');
   },
 
@@ -1371,6 +1558,31 @@ const UpdateProgressSheet = {
           Snackbar.show('Gagal menyimpan nilai project: ' + (result.message || ''), 'error');
         }
       });
+    }
+
+    // Info kontak susulan (cuma tampil kalau project belum punya kontak
+    // sama sekali) — kirim sebagai request terpisah juga, sama seperti
+    // pola nilai project di atas.
+    if (!document.getElementById('update-progress-contact-group').hidden) {
+      const contactName = document.getElementById('input-contact-name-update').value.trim();
+      const contactPhone = document.getElementById('input-contact-phone-update').value.trim();
+      const contactRole = document.getElementById('select-contact-role-update').value;
+
+      if (contactName && contactPhone && contactRole) {
+        Api.call('createContact', {
+          contact_id: IdGen.contactId(),
+          project_id: State.currentProjectId,
+          contact_name: contactName,
+          phone_number: contactPhone,
+          role: contactRole
+        }).then((result) => {
+          if (!result.success && !result.queued) {
+            Snackbar.show('Gagal menyimpan info kontak: ' + (result.message || ''), 'error');
+          }
+        });
+      } else if (contactName || contactPhone || contactRole) {
+        Snackbar.show('Info kontak tidak disimpan — Nama, Telepon, dan Role harus diisi semua', 'info');
+      }
     }
 
     try {
